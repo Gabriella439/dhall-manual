@@ -1,28 +1,45 @@
-* Is Dhall appropriate for a given project or use case?
-* How to create an ad-hoc binding to an existing YAML/JSON configuration
-* How to create a systematic binding to widely used YAML configuration format
-* How to check a Dhall configuration file against a schema
-* How to migrate a Dhall configuration file
-* How to deal with weakly-typed JSON idioms
-* How to host a package for others to use
-* How to make a package discoverable
-* How to use/obtain/"install" a remote expression/package
-* How to organize a package (i.e. the API)
-* How to organize a project (i.e. filesystem layout)
-* How to make invalid types unrepresentable
-* How to secure a Dhall project
-* How to share a Dhall configuration file across multiple languages and file
-  formats
-* Common idioms (i.e. defaults record + `//`)
-* Naming conventions
-* How to integrate with twelve-factor app
-* How to use tools like `dhall-to-{json,yaml}`/`{json,yaml}-to-dhall`
-* How to integrate Dhall with CI (i.e. formatting/linting/caching)
-* How to edit Dhall code with IDE support?
-* How to cope with an evolving language standard
-* How to future-proof code that depends on built-ins (i.e. use the Prelude)
-* How to use the Prelude in general
-* How to "version" a project
-* How to build in forwards compatibility
-* Idioms for documenting functions and presenting them (i.e. `let` idiom
-  used by Prelude to give the function a name and type)
+* For application authors
+    * Running example: integrating Dhall into an example twelve-factor app
+    * Is Dhall appropriate for a given project or use case?
+    * How to obtain various `dhall*` executables
+    * Instructions on how to configure a new project using Dhall
+        * Language bindings
+        * `dhall-to-{json,yaml,text,bash}`
+    * Instructions on how to migrate an existing project to Dhall
+        * How to use `{json-yaml}-to-dhall`
+    * How to edit Dhall code with IDE support?
+    * How to check a Dhall configuration file against a schema
+      (i.e. type annotation)
+    * How to migrate a Dhall configuration file (i.e. function)
+    * How to integrate Dhall with CI (i.e. formatting/linting/caching)
+        * ... including how to save the cache between CI runs?
+    * How to use/obtain/"install" a remote expression/package
+        * Semantic integrity checks
+        * If not using semantic integrity checks, discuss how Dhall fits in with
+          filesystem hierarchy standard
+    * How to secure a Dhall project
+        * i.e. threat model
+    * How to use and navigate the Prelude
+    * How to organize a project (as an application author)
+    * How to share a Dhall configuration file across multiple languages and file
+      formats
+    * Common idioms (i.e. defaults record + `//`)
+    * How to detect changes in a package across releases (i.e. `dhall diff`)
+    * How to depend directly on a binary artifact (i.e. the cache) instead of
+      source
+* For package authors
+    * Running example: Packing Dhall bindings to Mergify configuration
+    * How to create a systematic binding to widely used configuration
+    * Naming conventions
+    * Recommended extension = `.dhall`
+    * How to deal with weakly-typed JSON idioms
+    * How to organize a package (i.e. the API)
+    * How to organize a project (as a package author)
+    * How to make invalid types unrepresentable
+    * How to "version" a project
+    * How to build in forwards compatibility
+    * Idioms for documenting functions and presenting them (i.e. `let` idiom
+      used by Prelude to give the function a name and type)
+    * How to cope with an evolving language standard
+    * How to host a package for others to use
+    * How to make a package discoverable
