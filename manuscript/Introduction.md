@@ -51,5 +51,3 @@ so I provide this personal guarantee: I will refund your purchase of this book,
 no questions asked, if you believe your use of Dhall has not noticeably reduced
 your project's defect rate.  So continue reading to take back your nights and
 weekends by deploying software that you can trust.
-
-[dhall-kubernetes]: https://github.com/dhall-lang/dhall-kubernetes
