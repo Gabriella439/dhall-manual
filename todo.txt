@@ -1,0 +1,2 @@
+* Strengthen claims in introduction after the book has been published (i.e.
+  testimonials, examples of projects influenced by design, etc.)
