@@ -28,6 +28,8 @@
     * How to depend directly on a binary artifact (i.e. the cache) instead of
       source
     * How to debug more effectively (especially type errors)
+    * How to integrate with services (i.e. parametrizing configuration on a
+      service call or multiplexing data)
 * For package authors
     * Running example: Packing Dhall bindings to Mergify configuration
     * How to create a systematic binding to widely used configuration
