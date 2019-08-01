@@ -1,5 +1,8 @@
 * For application authors
     * Running example: integrating Dhall into an example twelve-factor app
+    * How to install the tooling
+    * Generally useful tricks
+        * i.e. using the `watch` command for live output
     * Is Dhall appropriate for a given project or use case?
     * How to obtain various `dhall*` executables
     * Instructions on how to configure a new project using Dhall
@@ -47,3 +50,4 @@
     * How to host a package for others to use
     * How to make a package discoverable
     * How to tastefully author an API
+    * How to write tests
