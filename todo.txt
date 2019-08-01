@@ -1,3 +1,4 @@
 * Double-check error messages before publishing to see if they've changed
 * Strengthen claims in introduction after the book has been published (i.e.
   testimonials, examples of projects influenced by design, etc.)
+* Review all examples to update command-line output
