@@ -147,53 +147,53 @@ The reason that type says "JSON" is because Dhall uses the same representation f
 Let's quickly verify that the above type works:
 
 ```bash
-$ yaml-to-dhall https://prelude.dhall-lang.org/JSON/Type < ./mergify.yml
+$ yaml-to-dhall --ascii https://prelude.dhall-lang.org/JSON/Type < ./mergify.yml
 ```
 ```haskell
-  λ(JSON : Type)
-→ λ ( json
-    : { array :
-          List JSON → JSON
-      , bool :
-          Bool → JSON
-      , null :
-          JSON
-      , number :
-          Double → JSON
-      , object :
-          List { mapKey : Text, mapValue : JSON } → JSON
-      , string :
-          Text → JSON
-      }
-    )
-→ json.object
-    [ { mapKey =
-          "pull_request_rules"
-      , mapValue =
-          json.array
-            [ json.object
-                [ { mapKey =
-                      "actions"
-                  , mapValue =
-                      json.object
-                        [ { mapKey =
-                              "merge"
-                          , mapValue =
-                              json.object
-                                [ { mapKey =
-                                      "strict"
-                                  , mapValue =
-                                      json.string "smart"
-                                  }
-                                , { mapKey =
-                                      "method"
-                                  , mapValue =
-                                      json.string "squash"
-                                  }
-                                ]
-                          }
-                        ]
-                  }
+    \(JSON : Type)
+->  \ ( json
+      : { array :
+            List JSON -> JSON
+        , bool :
+            Bool -> JSON
+        , null :
+            JSON
+        , number :
+            Double -> JSON
+        , object :
+            List { mapKey : Text, mapValue : JSON } -> JSON
+        , string :
+            Text -> JSON
+        }
+      )
+->  json.object
+      [ { mapKey =
+            "pull_request_rules"
+        , mapValue =
+            json.array
+              [ json.object
+                  [ { mapKey =
+                        "actions"
+                    , mapValue =
+                        json.object
+                          [ { mapKey =
+                                "merge"
+                            , mapValue =
+                                json.object
+                                  [ { mapKey =
+                                        "strict"
+                                    , mapValue =
+                                        json.string "smart"
+                                    }
+                                  , { mapKey =
+                                        "method"
+                                    , mapValue =
+                                        json.string "squash"
+                                    }
+                                  ]
+                            }
+                          ]
+                    }
 ...
 ```
 
@@ -201,34 +201,34 @@ You can better understand the generated Dhall expression by ignoring the first 1
 
 ```haskell
 ...
-→ json.object
-    [ { mapKey =
-          "pull_request_rules"
-      , mapValue =
-          json.array
-            [ json.object
-                [ { mapKey =
-                      "actions"
-                  , mapValue =
-                      json.object
-                        [ { mapKey =
-                              "merge"
-                          , mapValue =
-                              json.object
-                                [ { mapKey =
-                                      "strict"
-                                  , mapValue =
-                                      json.string "smart"
-                                  }
-                                , { mapKey =
-                                      "method"
-                                  , mapValue =
-                                      json.string "squash"
-                                  }
-                                ]
-                          }
-                        ]
-                  }
+->  json.object
+      [ { mapKey =
+            "pull_request_rules"
+        , mapValue =
+            json.array
+              [ json.object
+                  [ { mapKey =
+                        "actions"
+                    , mapValue =
+                        json.object
+                          [ { mapKey =
+                                "merge"
+                            , mapValue =
+                                json.object
+                                  [ { mapKey =
+                                        "strict"
+                                    , mapValue =
+                                        json.string "smart"
+                                    }
+                                  , { mapKey =
+                                        "method"
+                                    , mapValue =
+                                        json.string "squash"
+                                    }
+                                  ]
+                            }
+                          ]
+                    }
 ...
 ```
 
@@ -237,7 +237,7 @@ This representation reads like a labeled syntax tree for our original YAML file.
 We can quickly verify that this generated Dhall expression corresponds to a valid YAML file by using `dhall-to-yaml` to perform the reverse translation:
 
 ```bash
-$ yaml-to-dhall https://prelude.dhall-lang.org/JSON/Type < ~/proj/dhall-manual/mergify.yml | dhall-to-yaml
+$ yaml-to-dhall --ascii https://prelude.dhall-lang.org/JSON/Type < ./mergify.yml | dhall-to-yaml
 ```
 ```yaml
 pull_request_rules:
@@ -272,55 +272,33 @@ Here we've created a file named `schema.dhall` to store the expected Dhall type 
 `yaml-to-dhall` can then use the above type to produce a more structured Dhall expression:
 
 ```bash
-$ yaml-to-dhall ./schema.dhall < ./mergify.yml
+$ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml
 ```
 ```haskell
 { pull_request_rules =
-    [   λ(JSON : Type)
-      → λ ( json
-          : { array :
-                List JSON → JSON
-            , bool :
-                Bool → JSON
-            , null :
-                JSON
-            , number :
-                Double → JSON
-            , object :
-                List { mapKey : Text, mapValue : JSON } → JSON
-            , string :
-                Text → JSON
-            }
-          )
-      → json.object
-          [ { mapKey =
-                "actions"
-            , mapValue =
-                json.object
-                  [ { mapKey =
-                        "merge"
-                    , mapValue =
-                        json.object
-                          [ { mapKey =
-                                "strict"
-                            , mapValue =
-                                json.string "smart"
-                            }
-                          , { mapKey =
-                                "method"
-                            , mapValue =
-                                json.string "squash"
-                            }
-                          ]
-                    }
-                  ]
-            }
+    [     \(JSON : Type)
+      ->  \ ( json
+            : { array :
+                  List JSON -> JSON
+              , bool :
+                  Bool -> JSON
+              , null :
+                  JSON
+              , number :
+                  Double -> JSON
+              , object :
+                  List { mapKey : Text, mapValue : JSON } -> JSON
+              , string :
+                  Text -> JSON
+              }
+            )
+      ->  ...
 ...
 ```
 
 Now the generated expression slightly resembles a more idiomatic Dhall configuration.  The outer record is an actual Dhall record and the `pull_request_rules` field contains an actual Dhall `List`.  The elements of that list could still be arbitrary YAML, though.
 
-## Strong typing
+## Strong types
 
 The opposite of a "weak" type is a "strong" type which provides "stronger" guarantees about values of that type.  We would like to "strengthen" the expected Dhall type until we're left with as little arbitrary YAML as possible.  In the case of a Mergify configuration [the documentation](https://doc.mergify.io/configuration.html) spells out the entire schema, so by the time we're done our expected Dhall type should be free of arbitrary YAML.
 
