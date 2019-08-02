@@ -33,6 +33,8 @@
     * How to debug more effectively (especially type errors)
     * How to integrate with services (i.e. parametrizing configuration on a
       service call or multiplexing data)
+    * Translating traditional terms (e.g. "schema"/"template") into Dhall
+      terminology (i.e. "type"/"function")
 * For package authors
     * Running example: Packing Dhall bindings to Mergify configuration
     * How to create a systematic binding to widely used configuration
