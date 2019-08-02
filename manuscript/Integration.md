@@ -4,9 +4,9 @@
 
 This chapter explains how to simplify a repetitive YAML configuration file by generating YAML from a Dhall configuration file.
 
-We'll use a [Mergify](https://mergify.io/) configuration file as our running example.  Mergify is a GitHub App that can automatically merge and backport pull requests and you configure the app's behavior through a `.mergify.yml` configuration file checked into the base branch of your repository.
+We'll use a [Mergify](https://mergify.io/) configuration file as our running example, where Mergify is a GitHub App that can automatically merge and backport pull requests.  You configure the app's behavior through a YAML configuration file checked into the base branch of your repository named `.mergify.yml`
 
-Here's a Mergify configuration that we'll begin with:
+Let's illustrate the problem with the following representative `.mergify.yml` configuration:
 
 ```yaml
 pull_request_rules:
@@ -30,101 +30,216 @@ pull_request_rules:
   - name: backport patches to 1.0.x branch
     conditions:
       - merged
-      - label=status:backport-1.0
+      - label=backport-1.0
     actions:
       backport:
         branches:
           - 1.0.x
       label:
         remove:
-          - "status:backport-1.0"
+          - "backport-1.0"
 
   - name: backport patches to 1.1.x branch
     conditions:
       - merged
-      - label=status:backport-1.1
+      - label=backport-1.1
     actions:
       backport:
         branches:
           - 1.1.x
       label:
         remove:
-          - "status:backport-1.1"
+          - "backport-1.1"
 
   - name: backport patches to 1.2.x branch
     conditions:
       - merged
-      - label=status:backport-1.2
+      - label=backport-1.2
     actions:
       backport:
         branches:
           - 1.2.x
       label:
         remove:
-          - "status:backport-1.2"
+          - "backport-1.2"
 
   - name: backport patches to 1.3.x branch
     conditions:
       - merged
-      - label=status:backport-1.3
+      - label=backport-1.3
     actions:
       backport:
         branches:
           - 1.3.x
       label:
         remove:
-          - "status:backport-1.3"
+          - "backport-1.3"
 
   - name: backport patches to 1.4.x branch
     conditions:
       - merged
-      - label=status:backport-1.4
+      - label=backport-1.4
     actions:
       backport:
         branches:
           - 1.4.x
       label:
         remove:
-          - "status:backport-1.4"
+          - "backport-1.4"
 
   - name: backport patches to 1.5.x branch
     conditions:
       - merged
-      - label=status:backport
+      - label=backport
     actions:
       backport:
         branches:
           - 1.5.x
       label:
         remove:
-          - "status:backport-1.5"
+          - "backport-1.5"
 ```
 
 The above configuration instructs Mergify to automatically:
 
-* squash merge pull requests with the `merge me` label and at least one approval
-* delete merged branches
-* backport certain labeled pull requests to release branches
+* squash merge pull requests with a `merge me` label and at least one approval
+* delete all merged branches
+* backport pull requests to release branches if they have a `backport-*` label
 
-This configuration file is repetitive because each new release branch we add requires that we copy, paste, and tweak a matching set of instructions for automatically backporting pull requests of a given label.
+The configuration is repetitive because each new release branch requires that we copy, paste, and modify the instructions for automatically backporting pull requests of a given label.
 
 We can use the Dhall configuration language to reduce the repetition, but in order to do so we need to first translate the configuration file as literally as possible to Dhall.  After that we can begin using Dhall's language features to remove some of the repetition.
 
-We'll use the `yaml-to-dhall` command-line tool to translate our YAML configuration file to Dhall rather than translating the file by hand (which is error-prone).  However, we need to provide `yaml-to-dhall` with an expected Dhall type in order to perform the translation.
+We'll use the `yaml-to-dhall` command-line tool to translate our YAML configuration file to Dhall rather than translating the file by hand (which is error-prone).  However, we need to provide `yaml-to-dhall` with an expected Dhall type in order to perform the translation.  Picking the right Dhall type is not as hard as translating the entire file, but it's also not trivial, so we'll step through the process of selecting an appropriate type.
 
-Assume that the YAML file is sufficiently messy and large that we don't know in advance what Dhall type use.  That's fine; we can discover the correct type by trial and error, using the above YAML configuration file as an example.
+## Arbitrary YAML
 
-Let's begin by telling `yaml-to-dhall` to decode into an empty record type (i.e. `{}`).  We know this expected type is wrong but we can iterate on the type as we go:
+First, you can always decode an arbitrary YAML configuration into the following Dhall type:
 
+```haskell
+https://prelude.dhall-lang.org/JSON/Type
 ```
-$ yaml-to-dhall '{}' < ./mergify.yml
 
-Error: Key(s) pull_request_rules present in the YAML object but not in the expected Dhall record type. This is not allowed unless you enable the --records-loose flag:
+... which is a useful remote import that resolves to:
 
-Expected Dhall type:
-{}
+```haskell
+  ∀(JSON : Type)
+→ ∀ ( json
+    : { array :
+          List JSON → JSON
+      , bool :
+          Bool → JSON
+      , null :
+          JSON
+      , number :
+          Double → JSON
+      , object :
+          List { mapKey : Text, mapValue : JSON } → JSON
+      , string :
+          Text → JSON
+      }
+    )
+→ JSON
+```
 
-YAML:
+The reason that type says "JSON" is because Dhall uses the same representation for modeling both JSON and YAML, so they share the same type for encoding arbitrary data.
+
+Let's quickly verify that the above type works:
+
+```bash
+$ yaml-to-dhall https://prelude.dhall-lang.org/JSON/Type < ./mergify.yml
+```
+```haskell
+  λ(JSON : Type)
+→ λ ( json
+    : { array :
+          List JSON → JSON
+      , bool :
+          Bool → JSON
+      , null :
+          JSON
+      , number :
+          Double → JSON
+      , object :
+          List { mapKey : Text, mapValue : JSON } → JSON
+      , string :
+          Text → JSON
+      }
+    )
+→ json.object
+    [ { mapKey =
+          "pull_request_rules"
+      , mapValue =
+          json.array
+            [ json.object
+                [ { mapKey =
+                      "actions"
+                  , mapValue =
+                      json.object
+                        [ { mapKey =
+                              "merge"
+                          , mapValue =
+                              json.object
+                                [ { mapKey =
+                                      "strict"
+                                  , mapValue =
+                                      json.string "smart"
+                                  }
+                                , { mapKey =
+                                      "method"
+                                  , mapValue =
+                                      json.string "squash"
+                                  }
+                                ]
+                          }
+                        ]
+                  }
+...
+```
+
+You can better understand the generated Dhall expression by ignoring the first 16 lines and reading the remainder of the output:
+
+```haskell
+...
+→ json.object
+    [ { mapKey =
+          "pull_request_rules"
+      , mapValue =
+          json.array
+            [ json.object
+                [ { mapKey =
+                      "actions"
+                  , mapValue =
+                      json.object
+                        [ { mapKey =
+                              "merge"
+                          , mapValue =
+                              json.object
+                                [ { mapKey =
+                                      "strict"
+                                  , mapValue =
+                                      json.string "smart"
+                                  }
+                                , { mapKey =
+                                      "method"
+                                  , mapValue =
+                                      json.string "squash"
+                                  }
+                                ]
+                          }
+                        ]
+                  }
+...
+```
+
+This representation reads like a labeled syntax tree for our original YAML file.  For example, the outer node in the syntax tree is an object, where the first key is named `pull_request_rules` and the corresponding value is an array of nested objects.
+
+We can quickly verify that this generated Dhall expression corresponds to a valid YAML file by using `dhall-to-yaml` to perform the reverse translation:
+
+```bash
+$ yaml-to-dhall https://prelude.dhall-lang.org/JSON/Type < ~/proj/dhall-manual/mergify.yml | dhall-to-yaml
+```
+```yaml
 pull_request_rules:
 - actions:
     merge:
@@ -134,28 +249,79 @@ pull_request_rules:
   conditions:
   - status-success=continuous-integration/appveyor/pr
   - label=merge me
-  - ! '#approved-reviews-by>=1'
+  - '#approved-reviews-by>=1'
 ...
 ```
 
-The error message indicates that we asked for an empty record, but the matching section of the YAML configuration contains an unexpected field named `pull_request_rules`.  We can update the expected type to reflect that:
+This matches our original YAML configuration, except that keys are now sorted.  `dhall-to-yaml` [does not yet support](https://github.com/dhall-lang/dhall-haskell/issues/1187) preserving the original field order.
 
+The type `https://prelude.dhall-lang.org/JSON/Type` is a "weak" type, meaning that the type guarantees little about an expression of that type.  For example, our Mergify configuration should always have an outer field named `pull_request_rules`, but you would not be able to infer that fact from the weak type.
+
+We usually don't want to use a weak type in isolation, but weak types can prove useful when some parts of the YAML schema are known in advance and other parts of the schema cannot be known in advance.  For example, suppose we only knew that our configuration would have a top-level object with only one key named `pull_request_rules` that contained an array of arbitrary JSON values.  We could encode that knowledge in the following Dhall type:
+
+```haskell
+-- ./schema.dhall
+
+let JSON/Type = https://prelude.dhall-lang.org/JSON/Type
+
+in  { pull_request_rules : List JSON/Type }
 ```
-$ yaml-to-dhall '{ pull_request_rules : {} }' < ./mergify.yml
 
-Error: Dhall type expression and json value do not match:
+Here we've created a file named `schema.dhall` to store the expected Dhall type (a.k.a. "the schema") since we don't to fit all of that on the command line.  We'll keep reusing this file since our schema will continue to grow.
 
-Expected Dhall type:
-{}
+`yaml-to-dhall` can then use the above type to produce a more structured Dhall expression:
 
-YAML:
-- actions:
-    merge:
-      strict: smart
-      method: squash
-  name: Automatically merge pull requests
-  conditions:
-  - status-success=continuous-integration/appveyor/pr
-  - label=merge me
-  - ! '#approved-reviews-by>=1'
+```bash
+$ yaml-to-dhall ./schema.dhall < ./mergify.yml
 ```
+```haskell
+{ pull_request_rules =
+    [   λ(JSON : Type)
+      → λ ( json
+          : { array :
+                List JSON → JSON
+            , bool :
+                Bool → JSON
+            , null :
+                JSON
+            , number :
+                Double → JSON
+            , object :
+                List { mapKey : Text, mapValue : JSON } → JSON
+            , string :
+                Text → JSON
+            }
+          )
+      → json.object
+          [ { mapKey =
+                "actions"
+            , mapValue =
+                json.object
+                  [ { mapKey =
+                        "merge"
+                    , mapValue =
+                        json.object
+                          [ { mapKey =
+                                "strict"
+                            , mapValue =
+                                json.string "smart"
+                            }
+                          , { mapKey =
+                                "method"
+                            , mapValue =
+                                json.string "squash"
+                            }
+                          ]
+                    }
+                  ]
+            }
+...
+```
+
+Now the generated expression slightly resembles a more idiomatic Dhall configuration.  The outer record is an actual Dhall record and the `pull_request_rules` field contains an actual Dhall `List`.  The elements of that list could still be arbitrary YAML, though.
+
+## Strong typing
+
+The opposite of a "weak" type is a "strong" type which provides "stronger" guarantees about values of that type.  We would like to "strengthen" the expected Dhall type until we're left with as little arbitrary YAML as possible.  In the case of a Mergify configuration [the documentation](https://doc.mergify.io/configuration.html) spells out the entire schema, so by the time we're done our expected Dhall type should be free of arbitrary YAML.
+
+However, we don't have to translate the entire Mergify schema to a Dhall type.  You can "pay as you go", translating as much or as little as makes sense for your use case.  How do you know when to stop?  When you feel ready to factor out repetitive code.
