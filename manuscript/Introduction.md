@@ -1,14 +1,12 @@
 # Introduction
 
-This manual is a guide to the Dhall configuration language, a programmable file format commonly used to tame large and unwieldy configurations.
+This manual is a guide to the Dhall configuration language, a programmable file format you can use to simplify large and unwieldy configuration files.
 
-You should read this manual if you are interested in transitioning from a novice user of the Dhall configuration language to a proficient user.  In other words, I dedicate this book to readers familiar with basic language features and interested in using Dhall within larger projects while following best practices.
+This book addresses readers familiar with basic language features and interested in using Dhall within larger projects while following best practices.  In particular, this manual is not a tutorial, meaning that you might not find the contents helpful if you have never used Dhall before.  If you prefer introductory material then you might visit [the official website](http://dhall-lang.org/) which explains the rationale behind the language and links to tutorials more suitable for newcomers.
 
-This manual is not a tutorial, meaning that you probably will not find the contents interesting if you have never used Dhall before.  If that describes you then you might prefer [the official website](http://dhall-lang.org/) which explains the rationale behind the language and links to tutorials more suitable for newcomers.
+Inside you will find a collection of "How to" guides for common tasks you will encounter when using Dhall "in anger".  Each chapter is written to be as self-contained as possible, yet they will build upon a running example so the book can be read front to back.
 
-Inside you will find a collection of "How to" guides providing detailed recipes for common tasks you will encounter when using Dhall "in anger".  Each section is written to be as self-contained as possible, yet each will build upon a running worked example to provide logical continuity so the book can be read front to back.
-
-These sections come in two parts:
+These guides come in two parts:
 
 * **Part 1** - Application authors
 
@@ -18,8 +16,8 @@ These sections come in two parts:
 
   This part covers guides relevant to contributors who wish to share reusable Dhall packages with others.  You might still find this section interesting even if you don't plan to share code, if only to recognize idioms that package authors will adhere to.
 
-Reading this manual will give you the confidence and ability to share the Dhall configuration language with your colleagues.  Does a new person need assistance setting up their development environment to use Dhall?  Is somebody stuck working through a gnarly type error?  Do several contributors need to agree upon an opinionated project layout?  There's a ready-to-share chapter for each of those subjects (and more) that you can recommend to others.
+Reading this manual will give you the confidence and ability to share the Dhall configuration language with your colleagues.  Does a new person need assistance setting up their development environment to use Dhall?  Is somebody stuck on a gnarly type error?  Do several contributors need to agree upon an opinionated project layout?  There's a ready-to-share chapter for each of those subjects (and more) that you can recommend to others.
 
 You can trust that the advice in this book reflects best practices because I've spent years using the language, supporting other users (both open source and commercial), and steering the ecosystem as the original author of the language.
 
-I assume that you care about correctness and quality if you've gotten this far, so I provide this personal guarantee: I will refund your purchase of this book, no questions asked, if you believe your use of Dhall has not noticeably reduced your project's defect rate.  So continue reading to take back your nights and weekends by deploying software that you can trust.
+I assume that you care about correctness and quality if you've gotten this far, so I provide this personal guarantee: I will refund your purchase of this book, no questions asked, if you believe your use of Dhall has not noticeably reduced your project's defect rate.  So continue reading if you want to deploy with confidence and build upon a software foundation that you can trust.
