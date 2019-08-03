@@ -2,3 +2,4 @@
 * Strengthen claims in introduction after the book has been published (i.e.
   testimonials, examples of projects influenced by design, etc.)
 * Review all examples to update command-line output
+* Revisit "On writing well" book before doing final editing pass
