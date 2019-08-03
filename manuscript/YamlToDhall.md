@@ -262,7 +262,7 @@ The type `https://prelude.dhall-lang.org/JSON/Type` is a "weak" type, meaning th
 
 We could technically accept that translation to Dhall and begin factoring out repetition in the generated Dhall code.  However, I generally recommend translating YAML to a Dhall expression with a "stronger" type when possible.
 
-A "strong" type is the opposite of a "weak" type.  The "stronger" the type, the more guarantees the type provides about values having that type.  Ideally, we would like to "strengthen" the type of our Dhall configuration file until we're left with as little arbitrary YAML as possible.  In fact, we can remove all arbitrary YAML from our configuration because Mergify [documents their configuration schema](https://doc.mergify.io/configuration.html) and we can translate Mergify's documented guarantees into type-level guarantees.
+A "strong" type is the opposite of a "weak" type.  The "stronger" the type, the more guarantees the type provides about values having that type.  Ideally, we would like to "strengthen" the type of our Dhall configuration file until we're left with as little arbitrary YAML as possible.  In fact, we can remove all arbitrary YAML from our configuration because Mergify documents their configuration schema and we can translate Mergify's documented guarantees into type-level guarantees.
 
 For example, the [Mergify file format documentation](https://doc.mergify.io/configuration.html) specifies that:
 
