@@ -1,14 +1,10 @@
-# How to replace an existing YAML configuration file with Dhall
+# How to convert an existing YAML configuration file to Dhall
 
-This chapter explains how to simplify a repetitive YAML configuration file by:
-
-* converting the YAML configuration file to an equivalent Dhall configuration file
-* using Dhall's programming language features to simplify the configuration
-* generating the original YAML from the simpler Dhall configuration file
+This chapter explains how to transform a YAML configuration file into an equivalent Dhall configuration file.
 
 ## The Problem
 
-We'll use a [Mergify](https://mergify.io/) configuration file as our running example, where Mergify is a GitHub App that can automatically merge and backport pull requests.  You configure the app's behavior through a YAML configuration file checked into the base branch of your repository named `.mergify.yml`
+We'll use a [Mergify](https://mergify.io/) configuration file as our running example, where Mergify is a GitHub App that can automatically merge and backport pull requests.  You configure the app's behavior through a YAML configuration file named `.mergify.yml` checked into the base branch of your repository.
 
 Let's illustrate the problem with the following representative `.mergify.yml` configuration, which you can skim for now:
 
@@ -104,51 +100,51 @@ pull_request_rules:
           - "backport-1.5"
 ```
 
-The above configuration instructs Mergify to automatically:
+The above list of rules instructs Mergify to automatically:
 
 * "squash merge" pull requests with a `merge me` label and at least one approval
 * delete all merged branches
 * backport pull requests to release branches if they have a `backport-*` label
 
-This configuration is repetitive because the last five rules are almost identical: each new release branch requires that we copy, paste, and modify the instructions for automatically backporting pull requests of a given label.
+The last five backport-related rules are nearly identical: each new release branch requires that we copy, paste, and modify the instructions for automatically backporting pull requests of a given label.
 
-We can use the Dhall configuration language to reduce the repetition, but in order to do so we need to first translate the configuration file as literally as possible to Dhall.  After that we can begin using Dhall's language features to remove some of the repetition.
+We can reduce that repetition, but first we need to translate the configuration file as literally as possible to Dhall.  We can then use Dhall's programming language features to factor out these repetitive rules in a following chapter.
 
-We'll use the `yaml-to-dhall` command-line tool to translate our YAML configuration file to Dhall rather than translating the file by hand (which is error-prone).  However, we need to provide `yaml-to-dhall` with an expected Dhall type in order to perform the translation.  Picking the right Dhall type is not as hard as translating the entire file, but it's also not trivial, so we'll step through the process of selecting an appropriate type.
+We'll use the `yaml-to-dhall` command-line tool to translate our YAML configuration to a Dhall configuration rather than translating the file by hand (which is error-prone).  However, we need to provide `yaml-to-dhall` with an expected Dhall type in order to perform the translation.  Picking the right Dhall type is not as difficult as translating the entire file, but it's also not trivial, so we'll step through the process of selecting an appropriate type.
 
 ## Arbitrary YAML
 
-First, you can always decode an arbitrary YAML configuration into a Dhall expression of the following type:
+First, you can always opt to decode an arbitrary YAML configuration into a Dhall expression of the following type:
 
 ```haskell
 https://prelude.dhall-lang.org/JSON/Type
 ```
 
-... which is a convenient remote import that resolves to:
+... which is a convenient remote import that evaluates to:
 
 ```haskell
-  ∀(JSON : Type)
-→ ∀ ( json
-    : { array :
-          List JSON → JSON
-      , bool :
-          Bool → JSON
-      , null :
-          JSON
-      , number :
-          Double → JSON
-      , object :
-          List { mapKey : Text, mapValue : JSON } → JSON
-      , string :
-          Text → JSON
-      }
-    )
-→ JSON
+    forall (JSON : Type)
+->  forall  ( json
+            : { array :
+                  List JSON -> JSON
+              , bool :
+                  Bool -> JSON
+              , null :
+                  JSON
+              , number :
+                  Double -> JSON
+              , object :
+                  List { mapKey : Text, mapValue : JSON } -> JSON
+              , string :
+                  Text -> JSON
+              }
+            )
+->  JSON
 ```
 
-The reason that the type says "JSON" is because Dhall uses the same representation for modeling both JSON and YAML, so they share the same type for encoding arbitrary data.
+The reason that the type says "JSON" is because Dhall uses the same representation for modeling both arbitrary JSON and arbitrary YAML, so they share the above type.
 
-Let's quickly verify that `yaml-to-dhall` can translate our YAML configuration to a Dhall expression of the above type:
+Let's quickly verify that `yaml-to-dhall` can translate our Mergify configuration into a sensible Dhall expression:
 
 ```bash
 $ yaml-to-dhall --ascii https://prelude.dhall-lang.org/JSON/Type < ./mergify.yml
@@ -236,12 +232,13 @@ You can better understand the generated Dhall expression by ignoring the first 1
 ...
 ```
 
-This representation looks like a labeled syntax tree for our original YAML file.  For example, the outer node in the syntax tree is an object, where the first key is named `pull_request_rules` and the corresponding value is an array of nested objects.
+This representation looks like a labeled syntax tree for our original YAML file.  For example, the outer node in the syntax tree is an object (i.e. `json.object`), where the first key (i.e. `mapKey`) is named `pull_request_rules` and the corresponding value (i.e. `mapValue`) is an array (i.e. `json.array`) of nested objects.
 
-We can quickly verify that this generated Dhall expression corresponds to a valid YAML file by using `dhall-to-yaml` to perform the reverse translation:
+We can verify that this generated Dhall expression models a valid YAML file by piping the output through the `dhall-to-yaml` command to perform the reverse translation:
 
 ```bash
-$ yaml-to-dhall --ascii https://prelude.dhall-lang.org/JSON/Type < ./mergify.yml | dhall-to-yaml
+$ yaml-to-dhall --ascii https://prelude.dhall-lang.org/JSON/Type < ./mergify.yml \
+>     | dhall-to-yaml
 ```
 ```yaml
 pull_request_rules:
@@ -257,30 +254,99 @@ pull_request_rules:
 ...
 ```
 
-This matches our original YAML configuration, except that the keys are now sorted.  `dhall-to-yaml` [does not yet support](https://github.com/dhall-lang/dhall-haskell/issues/1187) preserving the original field order.
+This matches our original YAML configuration, except that the keys are now sorted.  `dhall-to-yaml` [does not yet support](https://github.com/dhall-lang/dhall-haskell/issues/1187) preserving the original field order.  Fortunately, the meaning of the configuration does not change when reordering fields.
 
-The type `https://prelude.dhall-lang.org/JSON/Type` is a "weak" type, meaning that the type guarantees little about expressions of that type.  For example, our Mergify configuration should always have an outer field named `pull_request_rules`, but you would not be able to infer that fact from the weak type.
+The type `https://prelude.dhall-lang.org/JSON/Type` is a "weak" type, meaning that the type guarantees little about expressions having that type.  For example, our Mergify configuration should always have an outer field named `pull_request_rules`, but you would not be able to infer the presence of that field from the weak type.
 
 ## Strong types
 
-We could technically stop there and begin factoring out repetition in the generated Dhall code.  However, I generally recommend translating YAML to a Dhall expression with a "stronger" type when possible.
+We could technically accept that translation to Dhall and begin factoring out repetition in the generated Dhall code.  However, I generally recommend translating YAML to a Dhall expression with a "stronger" type when possible.
 
-A "strong" type is the opposite of a "weak" type.  The "stronger" the type, the more guarantees the type provides about values of that type.  Ideally, we would like to "strengthen" the type of our Dhall configuration file until we're left with as little arbitrary YAML as possible.  In the case of a Mergify configuration [the documentation](https://doc.mergify.io/configuration.html) spells out the entire schema, so by the time we're done our expected Dhall type should be free of arbitrary YAML.
+A "strong" type is the opposite of a "weak" type.  The "stronger" the type, the more guarantees the type provides about values having that type.  Ideally, we would like to "strengthen" the type of our Dhall configuration file until we're left with as little arbitrary YAML as possible.  In fact, we can remove all arbitrary YAML from our configuration because Mergify [documents their configuration schema](https://doc.mergify.io/configuration.html) and we can translate Mergify's documented guarantees into type-level guarantees.
 
-For example, the Mergify documentation specifies that a Mergify configuration file always contains a top-level object with only one key named `pull_request_rules` that in turn contained an array of rules.  Armed with that knowledge, we can begin to carve out a stronger type from our initial weak type, like this:
+For example, the [Mergify file format documentation](https://doc.mergify.io/configuration.html) specifies that:
+
+> The file main entry is a dictionary whose key is named `pull_request_rules`.
+
+... which we can translate to:
 
 ```haskell
 -- ./schema.dhall
 
 let JSON/Type = https://prelude.dhall-lang.org/JSON/Type
 
--- TODO: We'll flesh out the schema for Rule as we learn more
-let Rule = JSON/Type
+let Configuration = { pull_request_rules : JSON/Type }
 
-in  { pull_request_rules : List Rule }
+in  Configuration
 ```
 
-Here we've created a file named `schema.dhall` to store the expected Dhall type (a.k.a. "the schema") since we don't to cram that entire type on the command line.  We'll keep reusing this file as our schema grows.
+Here we've created a file named `schema.dhall` to store the expected Dhall type (a.k.a. "the schema") so that we don't to cram that entire type on the command line.  For example, you can test drive the above schema works by
+running:
+
+```bash
+$ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml
+```
+```haskell
+{ pull_request_rules =
+    ...
+```
+
+We'll keep adding to this file as we translate the Mergify schema to Dhall.
+
+The Mergify schema then says that:
+
+> ... The value of the `pull_request_rules` key must be a list of dictionary.
+>
+> Each dictionary must have the following keys:
+>
+> | Key Name     | Value Type | Value Description |
+> |--------------|------------|-------------------|
+> | `name`       | ...        | ...               |
+> | `conditions` | ...        | ...               |
+> | `actions`    | ...        | ...               |
+
+... which translates to this Dhall type:
+
+```haskell
+let JSON/Type = https://prelude.dhall-lang.org/JSON/Type
+
+let Rule = { name : JSON/Type, conditions : JSON/Type, actions : JSON/Type }
+
+let Configuration = { pull_request_rules : List Rule }
+
+in  Configuration
+```
+
+... and if we include the expected value types, we get:
+
+> | Key Name     | Value Type            | Value Description |
+> |--------------|-----------------------|-------------------|
+> | `name`       | string                | ...               |
+> | `conditions` | array of Conditions   | ...               |
+> | `actions`    | dictionary of Actions | ...               |
+
+... which corresponds to:
+
+```haskell
+let JSON/Type = https://prelude.dhall-lang.org/JSON/Type
+
+let Condition = JSON/Type
+
+let Action = JSON/Type
+
+let Rule =
+      { name :
+          Text
+      , conditions :
+          List Condition
+      , actions :
+          List { mapKey : Text, mapValue : Action }
+      }
+
+let Configuration = { pull_request_rules : List Rule }
+
+in  Configuration
+```
 
 `yaml-to-dhall` can then use the above type to produce a more structured Dhall expression:
 
@@ -289,24 +355,498 @@ $ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml
 ```
 ```haskell
 { pull_request_rules =
-    [     \(JSON : Type)
-      ->  \ ( json
-            : { array :
-                  List JSON -> JSON
-              , bool :
-                  Bool -> JSON
-              , null :
-                  JSON
-              , number :
-                  Double -> JSON
-              , object :
-                  List { mapKey : Text, mapValue : JSON } -> JSON
-              , string :
-                  Text -> JSON
-              }
-            )
-      ->  ...
+    [ { actions =
+          [ { mapKey =
+                "merge"
+            , mapValue =
+                    \(JSON : Type)
+                ->  \ ( json
+                      : { array :
+                            List JSON -> JSON
+                        , bool :
+                            Bool -> JSON
+                        , null :
+                            JSON
+                        , number :
+                            Double -> JSON
+                        , object :
+                            List { mapKey : Text, mapValue : JSON } -> JSON
+                        , string :
+                            Text -> JSON
+                        }
+                      )
+                ->  json.object
+                      [ { mapKey = "strict", mapValue = json.string "smart" }
+                      , { mapKey = "method", mapValue = json.string "squash" }
+                      ]
+            }
+          ]
+      , conditions =
+          [     \(JSON : Type)
+            ->  \ ( json
+                  : { array :
+                        List JSON -> JSON
+                    , bool :
+                        Bool -> JSON
+                    , null :
+                        JSON
+                    , number :
+                        Double -> JSON
+                    , object :
+                        List { mapKey : Text, mapValue : JSON } -> JSON
+                    , string :
+                        Text -> JSON
+                    }
+                  )
+            ->  json.string "status-success=continuous-integration/appveyor/pr"
+          ,     \(JSON : Type)
+            ->  \ ( json
+                  : { array :
+                        List JSON -> JSON
+                    , bool :
+                        Bool -> JSON
+                    , null :
+                        JSON
+                    , number :
+                        Double -> JSON
+                    , object :
+                        List { mapKey : Text, mapValue : JSON } -> JSON
+                    , string :
+                        Text -> JSON
+                    }
+                  )
+            ->  json.string "label=merge me"
+          ,     \(JSON : Type)
+            ->  \ ( json
+                  : { array :
+                        List JSON -> JSON
+                    , bool :
+                        Bool -> JSON
+                    , null :
+                        JSON
+                    , number :
+                        Double -> JSON
+                    , object :
+                        List { mapKey : Text, mapValue : JSON } -> JSON
+                    , string :
+                        Text -> JSON
+                    }
+                  )
+            ->  json.string "#approved-reviews-by>=1"
+          ]
+      , name =
+          "Automatically merge pull requests"
+      }
 ...
 ```
 
-Now the generated expression slightly resembles a more idiomatic Dhall configuration.  The outer record is an ordinary Dhall record and the `pull_request_rules` field contains an ordinary Dhall `List`.  The `Rule`s stored inside that list could still be arbitrary YAML, though, because we haven't narrowed down the type of a `Rule`, yet.
+Now the generated expression begins to resemble an idiomatic Dhall configuration.  The outer record is an ordinary Dhall record and the `pull_request_rules` field of that record contains an ordinary Dhall `List`.  However, the "leaves" of our expression are still cluttered by arbitrary YAML that we need to narrow down with more specific types.
+
+## Keep it simple
+
+What should the type of a `Condition` be?
+
+Technically, a `Condition` is just a string as far as the YAML configuration is concerned.  However, Mergify does not accept arbitrary strings for conditions and the documentation has an entire section devoted to the [grammar for `Condition` strings](https://doc.mergify.io/conditions.html#conditions).
+
+Reagrdless, we're going to ignore that grammar for now and treat a `Condition` as `Text`:
+
+```haskell
+let JSON/Type = https://prelude.dhall-lang.org/JSON/Type
+
+let Condition = Text
+
+let Action = JSON/Type
+
+let Rule =
+      { name :
+          Text
+      , conditions :
+          List Condition
+      , actions :
+          List { mapKey : Text, mapValue : Action }
+      }
+
+let Configuration = { pull_request_rules : List Rule }
+
+in  Configuration
+```
+
+Why?  Because our first priority is getting rid of arbitrary YAML.  We can strengthen the type of `Condition` later on.
+
+In general, try to [keep it simple](https://en.wikipedia.org/wiki/KISS_principle) when first adapting a YAML configuration to Dhall, otherwise you'll lose steam quickly.  Remember: our original goal was to simplify our Mergify configuration.
+
+## Essential complexity
+
+Now we only need to eliminate one remaining source of arbitrary YAML: `Action`s.  So far we used a list of key-value pairs to represent `actions` because the documentation said that `actions` is a dictionary.  However, if dig deeper the [documentation for `Action`s](https://doc.mergify.io/actions.html) says that only the following keys are allowed:
+
+* `assign`
+* `backport`
+* `comment`
+* `close`
+* `delete_head_branch`
+* `dismiss_reviews`
+* `label`
+* `merge`
+* `request_reviews`
+
+... although we'll only consider keys that we actually use to keep this simple.
+
+Moreover, each of the above keys is associated with a different type of value:  
+
+> ### `backport`
+>
+> The `backport` action takes the following parameter:
+>
+> | Key name   | Value type      | Default | Value Description |
+> |------------|-----------------|---------|-------------------|
+> | `branches` | array of string | ...     | ...               |
+>
+> ### `delete_head_branch`
+>
+> This action takes no configuration options
+>
+> ### `label`
+>
+> | Key name | Value type      | Default | Value Description |
+> |----------|-----------------|---------|-------------------|
+> | `add`    | array of string | ...     | ...               |
+> | `remove` | array of string | ...     | ...               |
+> 
+> ### `merge`
+>
+> The `merge` action takes the following parameter:
+>
+> | Key name          | Value type       | Default | Value Description |
+> |-------------------|------------------|---------|-------------------|
+> | `method`          | string           | ...     | ...               |
+> | `rebase_fallback` | string           | ...     | ...               |
+> | `strict`          | boolean or smart | ...     | ...               |
+> | `strict_method`   | string           | ...     | ...               |
+
+... and each key has a default value, meaning that the key might not even be present.
+
+This is an example of "essential complexity": the Mergify schema just happens to be complicated and here there is no simple type we can use as an alternative to arbitrary YAML.  Even so, we can still encode a Dhall type for the parts of the schema that we care about.
+
+We begin by encoding the schema for each action.  Each field with a default value (i.e. all of them) must be made `Optional` so that the user can specify that they prefer the default:
+
+```dhall
+let JSON/Type = https://prelude.dhall-lang.org/JSON/Type
+
+let Condition = Text
+
+let Backport = { branches : Optional (List Text) }
+
+let DeleteHeadBranch = {}
+
+let Label = { add : Optional (List Text), remove : Optional (List Text) }
+
+let Merge =
+      { method :
+          Optional Text
+      , rebase_fallback :
+          Optional Text
+      , strict :
+          Optional < Dumb : Bool | Smart >
+      , strict_method :
+          Optional Text
+      }
+
+let Action = JSON/Type
+
+let Rule =
+      { name :
+          Text
+      , conditions :
+          List Condition
+      , actions :
+          List { mapKey : Text, mapValue : Action }
+      }
+
+let Configuration = { pull_request_rules : List Rule }
+
+in  Configuration
+```
+
+Then we can stick those individual action types inside of a record instead of representing them as a list of key-value pairs:
+
+```dhall
+let Condition = Text
+
+let Backport = { branches : Optional (List Text) }
+
+let DeleteHeadBranch = {}
+
+let Label = { add : Optional (List Text), remove : Optional (List Text) }
+
+let Merge =
+      { method :
+          Optional Text
+      , rebase_fallback :
+          Optional Text
+      , strict :
+          Optional < dumb : Bool | smart >
+      , strict_method :
+          Optional Text
+      }
+
+let Rule =
+      { name :
+          Text
+      , conditions :
+          List Condition
+      , actions :
+          { backport :
+              Optional Backport
+          , delete_head_branch :
+              Optional DeleteHeadBranch
+          , label :
+              Optional Label
+          , merge :
+              Optional Merge
+          }
+      }
+
+let Configuration = { pull_request_rules : List Rule }
+
+in  Configuration
+```
+
+We wrap each type of action in an `Optional` field to indicate that they might not be present.
+
+This completes our schema, which is the final type we will use for converting our YAML to Dhall:
+
+```bash
+$ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml
+```
+```haskell
+{ pull_request_rules =
+    [ { actions =
+          { backport =
+              None { branches : Optional (List Text) }
+          , delete_head_branch =
+              None {}
+          , label =
+              None { add : Optional (List Text), remove : Optional (List Text) }
+          , merge =
+              Some
+              { method =
+                  Some "squash"
+              , rebase_fallback =
+                  None Text
+              , strict =
+                  Some < dumb : Bool | smart >.smart
+              , strict_method =
+                  None Text
+              }
+          }
+      , conditions =
+          [ "status-success=continuous-integration/appveyor/pr"
+          , "label=merge me"
+          , "#approved-reviews-by>=1"
+          ]
+      , name =
+          "Automatically merge pull requests"
+      }
+    , { actions =
+          { backport =
+              None { branches : Optional (List Text) }
+          , delete_head_branch =
+              Some {=}
+          , label =
+              None { add : Optional (List Text), remove : Optional (List Text) }
+          , merge =
+              None
+                { method :
+                    Optional Text
+                , rebase_fallback :
+                    Optional Text
+                , strict :
+                    Optional < dumb : Bool | smart >
+                , strict_method :
+                    Optional Text
+                }
+          }
+      , conditions =
+          [ "merged" ]
+      , name =
+          "Delete head branch after merge"
+      }
+    , { actions =
+          { backport =
+              Some { branches = Some [ "1.0.x" ] }
+          , delete_head_branch =
+              None {}
+          , label =
+              Some
+              { add =
+                  None (List Text)
+              , remove =
+                  Some [ "status:backport-1.0" ]
+              }
+          , merge =
+              None
+                { method :
+                    Optional Text
+                , rebase_fallback :
+                    Optional Text
+                , strict :
+                    Optional < dumb : Bool | smart >
+                , strict_method :
+                    Optional Text
+                }
+          }
+      , conditions =
+          [ "merged", "label=status:backport-1.0" ]
+      , name =
+          "backport patches to 1.0.x branch"
+      }
+    , { actions =
+          { backport =
+              Some { branches = Some [ "1.1.x" ] }
+          , delete_head_branch =
+              None {}
+          , label =
+              Some
+              { add =
+                  None (List Text)
+              , remove =
+                  Some [ "status:backport-1.1" ]
+              }
+          , merge =
+              None
+                { method :
+                    Optional Text
+                , rebase_fallback :
+                    Optional Text
+                , strict :
+                    Optional < dumb : Bool | smart >
+                , strict_method :
+                    Optional Text
+                }
+          }
+      , conditions =
+          [ "merged", "label=status:backport-1.1" ]
+      , name =
+          "backport patches to 1.1.x branch"
+      }
+    , { actions =
+          { backport =
+              Some { branches = Some [ "1.2.x" ] }
+          , delete_head_branch =
+              None {}
+          , label =
+              Some
+              { add =
+                  None (List Text)
+              , remove =
+                  Some [ "status:backport-1.2" ]
+              }
+          , merge =
+              None
+                { method :
+                    Optional Text
+                , rebase_fallback :
+                    Optional Text
+                , strict :
+                    Optional < dumb : Bool | smart >
+                , strict_method :
+                    Optional Text
+                }
+          }
+      , conditions =
+          [ "merged", "label=status:backport-1.2" ]
+      , name =
+          "backport patches to 1.2.x branch"
+      }
+    , { actions =
+          { backport =
+              Some { branches = Some [ "1.3.x" ] }
+          , delete_head_branch =
+              None {}
+          , label =
+              Some
+              { add =
+                  None (List Text)
+              , remove =
+                  Some [ "status:backport-1.3" ]
+              }
+          , merge =
+              None
+                { method :
+                    Optional Text
+                , rebase_fallback :
+                    Optional Text
+                , strict :
+                    Optional < dumb : Bool | smart >
+                , strict_method :
+                    Optional Text
+                }
+          }
+      , conditions =
+          [ "merged", "label=status:backport-1.3" ]
+      , name =
+          "backport patches to 1.3.x branch"
+      }
+    , { actions =
+          { backport =
+              Some { branches = Some [ "1.4.x" ] }
+          , delete_head_branch =
+              None {}
+          , label =
+              Some
+              { add =
+                  None (List Text)
+              , remove =
+                  Some [ "status:backport-1.4" ]
+              }
+          , merge =
+              None
+                { method :
+                    Optional Text
+                , rebase_fallback :
+                    Optional Text
+                , strict :
+                    Optional < dumb : Bool | smart >
+                , strict_method :
+                    Optional Text
+                }
+          }
+      , conditions =
+          [ "merged", "label=status:backport-1.4" ]
+      , name =
+          "backport patches to 1.4.x branch"
+      }
+    , { actions =
+          { backport =
+              Some { branches = Some [ "1.5.x" ] }
+          , delete_head_branch =
+              None {}
+          , label =
+              Some
+              { add =
+                  None (List Text)
+              , remove =
+                  Some [ "status:backport-1.5" ]
+              }
+          , merge =
+              None
+                { method :
+                    Optional Text
+                , rebase_fallback :
+                    Optional Text
+                , strict :
+                    Optional < dumb : Bool | smart >
+                , strict_method :
+                    Optional Text
+                }
+          }
+      , conditions =
+          [ "merged", "label=status:backport" ]
+      , name =
+          "backport patches to 1.5.x branch"
+      }
+    ]
+}
+```
+
+In the next chapter we'll simplify this Dhall configuration to remove the repetition.
