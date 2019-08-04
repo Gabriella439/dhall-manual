@@ -147,7 +147,8 @@ The reason that the type says "JSON" is because Dhall uses the same representati
 Let's quickly verify that `yaml-to-dhall` can translate our Mergify configuration into a sensible Dhall expression:
 
 ```bash
-$ yaml-to-dhall --ascii https://prelude.dhall-lang.org/JSON/Type < ./mergify.yml
+$ yaml-to-dhall --ascii https://prelude.dhall-lang.org/JSON/Type < ./mergify.yml \
+>     tee ./mergify.dhall
 ```
 ```haskell
     \(JSON : Type)
@@ -194,7 +195,12 @@ $ yaml-to-dhall --ascii https://prelude.dhall-lang.org/JSON/Type < ./mergify.yml
                             }
                           ]
                     }
-...
+                  , ...
+                  ]
+              , ...
+              ]
+        }
+      ]
 ```
 
 You can better understand the generated Dhall expression by ignoring the first 16 lines and reading the remainder of the output:
@@ -229,7 +235,12 @@ You can better understand the generated Dhall expression by ignoring the first 1
                             }
                           ]
                     }
-...
+                  , ...
+                  ]
+              , ...
+              ]
+        }
+      ]
 ```
 
 This representation looks like a labeled syntax tree for our original YAML file.  For example, the outer node in the syntax tree is an object (i.e. `json.object`), where the first key (i.e. `mapKey`) is named `pull_request_rules` and the corresponding value (i.e. `mapValue`) is an array (i.e. `json.array`) of nested objects.
@@ -237,8 +248,7 @@ This representation looks like a labeled syntax tree for our original YAML file.
 We can verify that this generated Dhall expression models a valid YAML file by piping the output through the `dhall-to-yaml` command to perform the reverse translation:
 
 ```bash
-$ yaml-to-dhall --ascii https://prelude.dhall-lang.org/JSON/Type < ./mergify.yml \
->     | dhall-to-yaml
+$ dhall-to-yaml --file ./mergify.dhall
 ```
 ```yaml
 pull_request_rules:
@@ -251,7 +261,7 @@ pull_request_rules:
   - status-success=continuous-integration/appveyor/pr
   - label=merge me
   - '#approved-reviews-by>=1'
-...
+- ...
 ```
 
 This matches our original YAML configuration, except that the keys are now sorted.  `dhall-to-yaml` [does not yet support](https://github.com/dhall-lang/dhall-haskell/issues/1187) preserving the original field order.  Fortunately, the meaning of the configuration does not change when reordering fields.
@@ -289,6 +299,7 @@ $ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml
 ```haskell
 { pull_request_rules =
     ...
+}
 ```
 
 We'll keep adding to this file as we translate the Mergify schema to Dhall.
@@ -616,7 +627,8 @@ We wrap each type of action in an `Optional` field to indicate that they might n
 This completes our schema, which is the final type we will use for converting our YAML to Dhall:
 
 ```bash
-$ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml
+$ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml \
+>     | tee mergify.dhall
 ```
 ```haskell
 { pull_request_rules =
@@ -700,153 +712,54 @@ $ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml
       , name =
           "backport patches to 1.0.x branch"
       }
-    , { actions =
-          { backport =
-              Some { branches = Some [ "1.1.x" ] }
-          , delete_head_branch =
-              None {}
-          , label =
-              Some
-              { add =
-                  None (List Text)
-              , remove =
-                  Some [ "status:backport-1.1" ]
-              }
-          , merge =
-              None
-                { method :
-                    Optional Text
-                , rebase_fallback :
-                    Optional Text
-                , strict :
-                    Optional < dumb : Bool | smart >
-                , strict_method :
-                    Optional Text
-                }
-          }
-      , conditions =
-          [ "merged", "label=status:backport-1.1" ]
-      , name =
-          "backport patches to 1.1.x branch"
-      }
-    , { actions =
-          { backport =
-              Some { branches = Some [ "1.2.x" ] }
-          , delete_head_branch =
-              None {}
-          , label =
-              Some
-              { add =
-                  None (List Text)
-              , remove =
-                  Some [ "status:backport-1.2" ]
-              }
-          , merge =
-              None
-                { method :
-                    Optional Text
-                , rebase_fallback :
-                    Optional Text
-                , strict :
-                    Optional < dumb : Bool | smart >
-                , strict_method :
-                    Optional Text
-                }
-          }
-      , conditions =
-          [ "merged", "label=status:backport-1.2" ]
-      , name =
-          "backport patches to 1.2.x branch"
-      }
-    , { actions =
-          { backport =
-              Some { branches = Some [ "1.3.x" ] }
-          , delete_head_branch =
-              None {}
-          , label =
-              Some
-              { add =
-                  None (List Text)
-              , remove =
-                  Some [ "status:backport-1.3" ]
-              }
-          , merge =
-              None
-                { method :
-                    Optional Text
-                , rebase_fallback :
-                    Optional Text
-                , strict :
-                    Optional < dumb : Bool | smart >
-                , strict_method :
-                    Optional Text
-                }
-          }
-      , conditions =
-          [ "merged", "label=status:backport-1.3" ]
-      , name =
-          "backport patches to 1.3.x branch"
-      }
-    , { actions =
-          { backport =
-              Some { branches = Some [ "1.4.x" ] }
-          , delete_head_branch =
-              None {}
-          , label =
-              Some
-              { add =
-                  None (List Text)
-              , remove =
-                  Some [ "status:backport-1.4" ]
-              }
-          , merge =
-              None
-                { method :
-                    Optional Text
-                , rebase_fallback :
-                    Optional Text
-                , strict :
-                    Optional < dumb : Bool | smart >
-                , strict_method :
-                    Optional Text
-                }
-          }
-      , conditions =
-          [ "merged", "label=status:backport-1.4" ]
-      , name =
-          "backport patches to 1.4.x branch"
-      }
-    , { actions =
-          { backport =
-              Some { branches = Some [ "1.5.x" ] }
-          , delete_head_branch =
-              None {}
-          , label =
-              Some
-              { add =
-                  None (List Text)
-              , remove =
-                  Some [ "status:backport-1.5" ]
-              }
-          , merge =
-              None
-                { method :
-                    Optional Text
-                , rebase_fallback :
-                    Optional Text
-                , strict :
-                    Optional < dumb : Bool | smart >
-                , strict_method :
-                    Optional Text
-                }
-          }
-      , conditions =
-          [ "merged", "label=status:backport" ]
-      , name =
-          "backport patches to 1.5.x branch"
-      }
+    , ...
     ]
 }
 ```
 
-In the next chapter we'll simplify this Dhall configuration to remove the repetition.
+Our generated Dhall configuration is pretty big, but in the next chapter we'll begin to simplify this configuration file to remove the repetition.  Once we're done the Dhall configuration will be smaller than the original YAML.
+
+## `dhall-to-yaml`
+
+If we convert our Dhall configuration back to YAML we will get several gratuitous `null`s:
+
+```bash
+$ dhall-to-yaml --file ./mergify.dhall
+```
+```yaml
+pull_request_rules:
+- actions:
+    backport: null
+    delete_head_branch: null
+    merge:
+      strict: smart
+      rebase_fallback: null
+      method: squash
+      strict_method: null
+    label: null
+  name: Automatically merge pull requests
+  conditions:
+  - status-success=continuous-integration/appveyor/pr
+  - label=merge me
+  - '#approved-reviews-by>=1'
+- ...
+```
+
+We can remove these `null`s using the `--omitNull` flag:
+
+```bash
+$ dhall-to-yaml --omitNull --file ./mergify.dhall
+```
+```yaml
+pull_request_rules:
+- actions:
+    merge:
+      strict: smart
+      method: squash
+  name: Automatically merge pull requests
+  conditions:
+  - status-success=continuous-integration/appveyor/pr
+  - label=merge me
+  - '#approved-reviews-by>=1'
+- ...
+```
