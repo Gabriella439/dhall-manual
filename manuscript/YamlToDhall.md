@@ -1,6 +1,6 @@
 # How to convert an existing YAML configuration file to Dhall
 
-This chapter explains how to transform a YAML configuration file into an equivalent Dhall configuration file.
+This chapter explains how to transform a YAML configuration file into an equivalent Dhall configuration file with the assistance of the `yaml-to-dhall` command-line tool.
 
 ## The Problem
 
