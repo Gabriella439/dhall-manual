@@ -540,7 +540,7 @@ This is an example of "essential complexity": the Mergify schema just happens to
 
 We begin by encoding the schema for each action.  Each field with a default value (i.e. all of them) must be made `Optional` so that the user can specify that they prefer the default:
 
-```dhall
+```haskell
 let JSON/Type = https://prelude.dhall-lang.org/JSON/Type
 
 let Condition = Text
@@ -580,7 +580,7 @@ in  Configuration
 
 Then we can stick those individual action types inside of a record instead of representing them as a list of key-value pairs:
 
-```dhall
+```haskell
 let Condition = Text
 
 let Backport = { branches : Optional (List Text) }
