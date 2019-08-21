@@ -108,7 +108,7 @@ The above list of rules instructs Mergify to automatically:
 
 The last five rules are nearly identical because we need to copy, paste, and modify the backporting logic every time we create a new release branch.
 
-We can reduce that repetition, but first we need to translate the configuration file as literally as possible to Dhall.  After that we can use Dhall's programming language features to factor out repetitive rules in a following chapter.
+We can reduce that repetition, but first we need to translate the configuration file as literally as possible to Dhall.  After that we can use Dhall's programming language features to factor out repetitive rules.
 
 We'll use the `yaml-to-dhall` command-line tool to translate our YAML configuration file to a Dhall configuration file rather than translating the file by hand (which is error-prone).  However, we need to provide `yaml-to-dhall` with an expected Dhall type in order to perform the translation.  Picking the right Dhall type is not as difficult as translating the entire file, but it's also not trivial, so we'll step through the process of selecting an appropriate type.
 
@@ -802,7 +802,154 @@ $ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml \
 }
 ```
 
-The above snippet truncates the output since the generated Dhall configuration starts off large, but in the next chapter we'll begin to simplify this configuration file to remove the repetition.  Once we're done the Dhall configuration will be smaller than the original YAML.
+The above snippet truncates the output since the generated Dhall configuration starts off large, but now that we have valid Dhall code we can begin factoring out repetition!
+
+## Simplification
+
+Let's create a `backport` function that we can invoke repeatedly for each backport rule.  We begin by lifting up an example backport rule to the beginning of our configuration file:
+
+```haskell
+let backport =
+      { actions =
+          { backport =
+              Some { branches = Some [ "1.0.x" ] }
+          , delete_head_branch =
+              None {}
+          , label =
+              Some
+              { add =
+                  None (List Text)
+              , remove =
+                  Some [ "status:backport-1.0" ]
+              }
+          , merge =
+              None
+                { method :
+                    Optional Text
+                , rebase_fallback :
+                    Optional Text
+                , strict :
+                    Optional < dumb : Bool | smart >
+                , strict_method :
+                    Optional Text
+                }
+          }
+      , conditions =
+          [ "merged", "label=status:backport-1.0" ]
+      , name =
+          "backport patches to 1.0.x branch"
+      }
+
+in  ...
+```
+
+The only thing that changes between each backport rule is the version number, so we'll turn `backport` into a function of one argument (the `version` string):
+
+```haskell
+let backport =
+          \(version : Text)
+      ->  { actions =
+              { backport =
+                  Some { branches = Some [ "${version}.x" ] }
+              , delete_head_branch =
+                  None {}
+              , label =
+                  Some
+                  { add =
+                      None (List Text)
+                  , remove =
+                      Some [ "status:backport-${version}" ]
+                  }
+              , merge =
+                  None
+                    { method :
+                        Optional Text
+                    , rebase_fallback :
+                        Optional Text
+                    , strict :
+                        Optional < dumb : Bool | smart >
+                    , strict_method :
+                        Optional Text
+                    }
+              }
+          , conditions =
+              [ "merged", "label=status:backport-${version}" ]
+          , name =
+              "backport patches to ${version}.x branch"
+          }
+
+in  { pull_request_rules =
+        [ { actions =
+              { backport =
+                  None { branches : Optional (List Text) }
+              , delete_head_branch =
+                  None {}
+              , label =
+                  None
+                    { add :
+                        Optional (List Text)
+                    , remove :
+                        Optional (List Text)
+                    }
+              , merge =
+                  Some
+                  { method =
+                      Some "squash"
+                  , rebase_fallback =
+                      None Text
+                  , strict =
+                      Some < dumb : Bool | smart >.smart
+                  , strict_method =
+                      None Text
+                  }
+              }
+          , conditions =
+              [ "status-success=continuous-integration/appveyor/pr"
+              , "label=merge me"
+              , "#approved-reviews-by>=1"
+              ]
+          , name =
+              "Automatically merge pull requests"
+          }
+        , { actions =
+              { backport =
+                  None { branches : Optional (List Text) }
+              , delete_head_branch =
+                  Some {=}
+              , label =
+                  None
+                    { add :
+                        Optional (List Text)
+                    , remove :
+                        Optional (List Text)
+                    }
+              , merge =
+                  None
+                    { method :
+                        Optional Text
+                    , rebase_fallback :
+                        Optional Text
+                    , strict :
+                        Optional < dumb : Bool | smart >
+                    , strict_method :
+                        Optional Text
+                    }
+              }
+          , conditions =
+              [ "merged" ]
+          , name =
+              "Delete head branch after merge"
+          }
+        , backport "1.0"
+        , backport "1.1"
+        , backport "1.2"
+        , backport "1.3"
+        , backport "1.4"
+        ]
+    }
+```
+
+... which we use above to simplify the last 5 backport-related rules.
 
 ## Omitting `null`
 
