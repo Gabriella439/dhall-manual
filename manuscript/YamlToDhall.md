@@ -106,11 +106,11 @@ The above list of rules instructs Mergify to automatically:
 * delete all merged branches
 * backport pull requests to release branches if they have a `backport-*` label
 
-The last five backport-related rules are nearly identical: each new release branch requires that we copy, paste, and modify the instructions for automatically backporting pull requests of a given label.
+The last five rules are nearly identical because we need to copy, paste, and modify the backporting logic every time we create a new release branch.
 
-We can reduce that repetition, but first we need to translate the configuration file as literally as possible to Dhall.  We can then use Dhall's programming language features to factor out these repetitive rules in a following chapter.
+We can reduce that repetition, but first we need to translate the configuration file as literally as possible to Dhall.  After that we can use Dhall's programming language features to factor out repetitive rules in a following chapter.
 
-We'll use the `yaml-to-dhall` command-line tool to translate our YAML configuration to a Dhall configuration rather than translating the file by hand (which is error-prone).  However, we need to provide `yaml-to-dhall` with an expected Dhall type in order to perform the translation.  Picking the right Dhall type is not as difficult as translating the entire file, but it's also not trivial, so we'll step through the process of selecting an appropriate type.
+We'll use the `yaml-to-dhall` command-line tool to translate our YAML configuration file to a Dhall configuration file rather than translating the file by hand (which is error-prone).  However, we need to provide `yaml-to-dhall` with an expected Dhall type in order to perform the translation.  Picking the right Dhall type is not as difficult as translating the entire file, but it's also not trivial, so we'll step through the process of selecting an appropriate type.
 
 ## Arbitrary YAML
 
@@ -144,11 +144,11 @@ https://prelude.dhall-lang.org/JSON/Type
 
 The reason that the type says "JSON" is because Dhall uses the same representation for modeling both arbitrary JSON and arbitrary YAML, so they share the above type.
 
-Let's quickly verify that `yaml-to-dhall` can use that type to translate our Mergify configuration into a sensible Dhall expression:
+Let's quickly verify that `yaml-to-dhall` can use that type to translate our Mergify configuration into a Dhall expression:
 
 ```bash
 $ yaml-to-dhall --ascii https://prelude.dhall-lang.org/JSON/Type < ./mergify.yml \
->     tee ./mergify.dhall
+>     | tee ./mergify.dhall
 ```
 ```haskell
     \(JSON : Type)
@@ -272,13 +272,13 @@ The type `https://prelude.dhall-lang.org/JSON/Type` is a "weak" type, meaning th
 
 We could technically accept that translation to Dhall and begin factoring out repetition in the generated Dhall code.  However, I generally recommend translating YAML to a Dhall expression with a "stronger" type when possible.
 
-A "strong" type is the opposite of a "weak" type.  The "stronger" the type, the more guarantees the type provides about values having that type.  Ideally, we would like to "strengthen" the type of our Dhall configuration file until we're left with as little arbitrary YAML as possible.  In fact, we can remove all arbitrary YAML from our configuration because Mergify documents their entire configuration schema.
+A "strong" type is the opposite of a "weak" type.  The "stronger" the type, the more guarantees the type provides about values having that type.  Ideally, we would like to "strengthen" the type of our Dhall configuration file until we're left with as little arbitrary YAML as possible.  In fact, we can remove all arbitrary YAML from our configuration because Mergify documents their entire YAML schema.
 
 For example, the [Mergify file format documentation](https://doc.mergify.io/configuration.html) specifies that:
 
 > The file main entry is a dictionary whose key is named `pull_request_rules`.
 
-... which we can translate to:
+... which we can translate to this initial Dhall type:
 
 ```haskell
 -- ./schema.dhall
@@ -290,7 +290,7 @@ let Configuration = { pull_request_rules : JSON/Type }
 in  Configuration
 ```
 
-Here we've created a file named `schema.dhall` to store the expected Dhall type (a.k.a. "the schema") so that we don't to fit that entire type on the command line.  For example, you can test drive the above schema works by
+Here we've created a file named `schema.dhall` to store the expected Dhall type (a.k.a. "the schema") so that we don't have to fit that entire type on the command line.  For example, you can test drive the above schema works by
 running:
 
 ```bash
@@ -302,7 +302,7 @@ $ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml
 }
 ```
 
-We'll keep adding to this `./schema.dhall` file as we convert the Mergify schema to the equivalent Dhall type.
+We'll continue to expand upon this `./schema.dhall` file as we convert the Mergify schema to the equivalent Dhall type.
 
 The Mergify schema then says that:
 
@@ -346,10 +346,10 @@ in  Configuration
 let JSON/Type = https://prelude.dhall-lang.org/JSON/Type
 
 let Condition = JSON/Type
-             -- ↑ We're still not sure what a `Condition` could be
+             -- ↑ We still do not know what a `Condition` could be
 
 let Action = JSON/Type
-          -- ↑ We're also not yet sure what an `Action` could be
+          -- ↑ We also still do not know what an `Action` could be
 
 let Rule =
       { name :
@@ -457,16 +457,39 @@ $ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml
       , name =
           "Automatically merge pull requests"
       }
-...
+    , ...
+    ]
+}
 ```
 
-Now the generated expression begins to resemble a Dhall configuration we might write by hand.  The outer record is an ordinary Dhall record and the `pull_request_rules` field of that record contains an ordinary Dhall `List`.  However, the "leaves" of our expression are still arbitrary YAML that we need to narrow down with more specific types.
+Now the generated expression begins to resemble a Dhall configuration we might write by hand.  The outer record is an ordinary Dhall record and the `pull_request_rules` field of that record contains an ordinary Dhall `List`.  However, the "leaves" of our expression are still arbitrary YAML that we need to narrow to more specific types.
 
-You can think of `JSON/Type` as analogous to a type-level `TODO` for our YAML schema that we can insert whenever we're not sure what the type should be.
+So far we've used `JSON/Type` as a type-level `TODO` for our YAML schema that we can insert when we're not sure what some subexpression's type should be.
 
 ## Keep it simple
 
 What should the type of a `Condition` be?
+
+```haskell
+let JSON/Type = https://prelude.dhall-lang.org/JSON/Type
+
+let Condition = JSON/Type  -- ← Surely we can do better here
+
+let Action = JSON/Type
+
+let Rule =
+      { name :
+          Text
+      , conditions :
+          List Condition
+      , actions :
+          List { mapKey : Text, mapValue : Action }
+      }
+
+let Configuration = { pull_request_rules : List Rule }
+
+in  Configuration
+```
 
 Technically, a `Condition` is just a string as far as the YAML configuration is concerned.  However, Mergify does not accept arbitrary strings for conditions and the documentation has an entire section devoted to the [grammar for `Condition` strings](https://doc.mergify.io/conditions.html#conditions).
 
@@ -493,15 +516,37 @@ let Configuration = { pull_request_rules : List Rule }
 in  Configuration
 ```
 
-Why?  Because our first priority is getting rid of arbitrary YAML.  We can strengthen the type of `Condition` later on.
+Why?  Because our first priority is getting rid of arbitrary YAML.  We can further strengthen the type of `Condition` later on.
 
-In general, try to [keep it simple](https://en.wikipedia.org/wiki/KISS_principle) when first adapting a YAML configuration to Dhall, otherwise you'll lose steam quickly.  Remember: our original goal was to simplify our Mergify configuration and we can't begin to factor out repetitive code until we've completed the conversion to Dhall.
+In general, try to [keep it simple](https://en.wikipedia.org/wiki/KISS_principle) when first adapting a YAML configuration to Dhall, otherwise you might lose steam and give up on the conversion.  Remember: our goal is to simplify our Mergify configuration and we want to get to work factoring out repetitive code.
 
 ## Essential complexity
 
-Now we only need to eliminate one remaining source of arbitrary YAML: `Action`s.
+Now we only need to eliminate one remaining source of arbitrary YAML: `action`s.
 
-So far we encoded the `actions` field as a list of key-value pairs because the documentation said that `actions` is a dictionary.  However, if we dig deeper the [documentation for `Action`s](https://doc.mergify.io/actions.html) indicates that this dictionary cannot contain arbitrary key-value pairs.
+```haskell
+let JSON/Type = https://prelude.dhall-lang.org/JSON/Type
+
+let Condition = Text
+
+let Action = JSON/Type
+
+let Rule =
+      { name :
+          Text
+      , conditions :
+          List Condition
+      , actions :
+          List { mapKey : Text, mapValue : Action }
+       -- ↑ This field actually has a more precise schema
+      }
+
+let Configuration = { pull_request_rules : List Rule }
+
+in  Configuration
+```
+
+So far we have encoded the `actions` field as a list of key-value pairs because the documentation said that `actions` is a dictionary.  However, if we dig deeper the [documentation for `Action`s](https://doc.mergify.io/actions.html) indicates that this dictionary cannot contain arbitrary key-value pairs.
 
 For example, the dictionary of actions only permits the following keys:
 
@@ -515,7 +560,7 @@ For example, the dictionary of actions only permits the following keys:
 * `merge`
 * `request_reviews`
 
-To keep this example short, we'll narrow those keys down further to only the keys used within our configuration file:
+To keep this chapter short, we'll narrow those keys down further to only the keys used within our configuration file:
 
 * `backport`
 * `delete_head_branch`
@@ -556,7 +601,7 @@ Additionally, each of the above keys stores a different type of value:
 
 ... and every key has a default value, meaning that the user can omit any given key.
 
-This illustrates "essential complexity": the Mergify schema just happens to be complicated and there is no simple type we can use as an alternative to arbitrary YAML.  We're not going to give up, though; we just need to specify a more sophisticated type.
+This is an example of "essential complexity": the Mergify schema just happens to be complicated, meaning that we cannot use a simple type here.  That's okay, though; we only need to specify a more sophisticated type.
 
 We'll begin with the easy part: encoding the schema for each type of action.  Each field with a default value (i.e. all of them) must be made `Optional` so that the user can omit the value if they want to select the default behavior:
 
@@ -662,9 +707,9 @@ let Configuration = { pull_request_rules : List Rule }
 in  Configuration
 ```
 
-Note that we wrap each type of action in an `Optional` field to indicate that the action might not be present at all within any given `Rule`.
+Note that our record of `actions` also has all `Optional` fields, indicating that each type of action may or may not be present for any given `Rule`.  A `Rule` could specify more than one action or not specify any actions at all (which would be useless, but legal).
 
-This final change completes our schema, which we can now use to convert our YAML to Dhall:
+This completes our schema, which we can now use to convert our YAML to Dhall:
 
 ```bash
 $ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml \
@@ -757,11 +802,11 @@ $ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml \
 }
 ```
 
-The above snippet truncates the output since the generated Dhall configuration starts off big, but in the next chapter we'll begin to simplify this large configuration file to remove the repetition.  Once we're done the Dhall configuration will be smaller than the original YAML.
+The above snippet truncates the output since the generated Dhall configuration starts off large, but in the next chapter we'll begin to simplify this configuration file to remove the repetition.  Once we're done the Dhall configuration will be smaller than the original YAML.
 
 ## Omitting `null`
 
-If we convert our Dhall configuration back to YAML we will get gratuitous `null`s wherever our configuration omits a field by setting the field to `None`:
+If we convert our Dhall configuration back to YAML we will get gratuitous `null`s wherever our configuration contains a `None`:
 
 ```bash
 $ dhall-to-yaml --file ./mergify.dhall
