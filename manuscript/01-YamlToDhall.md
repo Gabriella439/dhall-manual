@@ -967,6 +967,125 @@ in  { pull_request_rules =
 
 ... which we use above to simplify the last 5 backport-related rules.
 
+Finally, we can define some shared union types that we can reuse repeatedly:
+
+```haskell
+let Method = < merge | rebase | squash >
+
+let RebaseFallback = < merge | null | squash >
+
+let Strict = < dumb : Bool | smart >
+
+let StrictMethod = < merge | rebase >
+
+-- ↑ Shared types ...
+
+let backport =
+        λ(version : Text)
+      → { actions =
+            { backport =
+                Some { branches = Some [ "${version}.x" ] }
+            , delete_head_branch =
+                None {}
+            , label =
+                Some
+                { add =
+                    None (List Text)
+                , remove =
+                    Some [ "status:backport-${version}" ]
+                }
+            , merge =
+                None
+                  -- ↓ ... which we can use here
+                  { method :
+                      Optional Method
+                  , rebase_fallback :
+                      Optional RebaseFallback
+                  , strict :
+                      Optional Strict
+                  , strict_method :
+                      Optional StrictMethod
+                  }
+            }
+        , conditions =
+            [ "merged", "label=status:backport-${version}" ]
+        , name =
+            "backport patches to ${version}.x branch"
+        }
+
+in  { pull_request_rules =
+        [ { actions =
+              { backport =
+                  None { branches : Optional (List Text) }
+              , delete_head_branch =
+                  None {}
+              , label =
+                  None
+                    { add :
+                        Optional (List Text)
+                    , remove :
+                        Optional (List Text)
+                    }
+              , merge =
+                  Some
+                  -- ↓ ... and here
+                  { method =
+                      Some Method.squash
+                  , rebase_fallback =
+                      None RebaseFallback
+                  , strict =
+                      Some Strict.smart
+                  , strict_method =
+                      None StrictMethod
+                  }
+              }
+          , conditions =
+              [ "status-success=continuous-integration/appveyor/pr"
+              , "label=merge me"
+              , "#approved-reviews-by>=1"
+              ]
+          , name =
+              "Automatically merge pull requests"
+          }
+        , { actions =
+              { backport =
+                  None { branches : Optional (List Text) }
+              , delete_head_branch =
+                  Some {=}
+              , label =
+                  None
+                    { add :
+                        Optional (List Text)
+                    , remove :
+                        Optional (List Text)
+                    }
+              , merge =
+                  None
+                    -- ↓ ... and here
+                    { method :
+                        Optional Method
+                    , rebase_fallback :
+                        Optional RebaseFallback
+                    , strict :
+                        Optional Strict
+                    , strict_method :
+                        Optional StrictMethod
+                    }
+              }
+          , conditions =
+              [ "merged" ]
+          , name =
+              "Delete head branch after merge"
+          }
+        , backport "1.0"
+        , backport "1.1"
+        , backport "1.2"
+        , backport "1.3"
+        , backport "1.4"
+        ]
+    }
+```
+
 ## Omitting `null`
 
 If we convert our Dhall configuration back to YAML we will get gratuitous `null`s wherever our configuration contains a `None`:
