@@ -592,12 +592,13 @@ Additionally, each of the above keys stores a different type of value:
 >
 > The `merge` action takes the following parameter:
 >
-> | Key name          | Value type       | Default | Value Description |
-> |-------------------|------------------|---------|-------------------|
-> | `method`          | string           | ...     | ...               |
-> | `rebase_fallback` | string           | ...     | ...               |
-> | `strict`          | boolean or smart | ...     | ...               |
-> | `strict_method`   | string           | ...     | ...               |
+> | Key name          | Value type       | Default | Value Description                                        |
+> |-------------------|------------------|---------|----------------------------------------------------------|
+> | `method`          | string           | ...     | ...  Possible values are `merge`, `squash` or, `rebase`. |
+> | `rebase_fallback` | string           | ...     | ...  Possible values are `merge`, `squash`, `null`.      |
+> | `strict`          | boolean or smart | ...     | ...                                                      |
+> | `strict_method`   | string           | ...     | ...  Possible values are `merge` or `rebase`.            |
+
 
 ... and every key has a default value, meaning that the user can omit any given key.
 
@@ -628,22 +629,37 @@ let DeleteHeadBranch = {}
 -}
 let Label = { add : Optional (List Text), remove : Optional (List Text) }
 
-{-  | Key name          | Value type       | Default | Value Description |
+{-
+    | Key name          | Value type       | Default | Value Description |
     |-------------------|------------------|---------|-------------------|
     | `method`          | string           | ...     | ...               |
+    |                   |                  |         | Possible values   |
+    |                   |                  |         | are `merge`,      |
+    |                   |                  |         | `squash` or,      |
+    |                   |                  |         | `rebase`          |
+    |                   |                  |         |                   |
     | `rebase_fallback` | string           | ...     | ...               |
+    |                   |                  |         | Possible values   |
+    |                   |                  |         | are `merge`,      |
+    |                   |                  |         | `squash`, `null`. |
+    |                   |                  |         |                   |
     | `strict`          | boolean or smart | ...     | ...               |
+    |                   |                  |         |                   |
     | `strict_method`   | string           | ...     | ...               |
+    |                   |                  |         | Possible values   |
+    |                   |                  |         | are `merge` or    |
+    |                   |                  |         | `rebase`          |
 -}
+
 let Merge =
       { method :
-          Optional Text
+          Optional < merge | squash | rebase >
       , rebase_fallback :
-          Optional Text
+          Optional < merge | squash | null >
       , strict :
-          Optional < Dumb : Bool | Smart >
+          Optional < dumb : Bool | smart >
       , strict_method :
-          Optional Text
+          Optional < merge | rebase >
       }
 
 let Action = JSON/Type
@@ -675,13 +691,13 @@ let Label = { add : Optional (List Text), remove : Optional (List Text) }
 
 let Merge =
       { method :
-          Optional Text
+          Optional < merge | squash | rebase >
       , rebase_fallback :
-          Optional Text
+          Optional < merge | squash | null >
       , strict :
           Optional < dumb : Bool | smart >
       , strict_method :
-          Optional Text
+          Optional < merge | rebase >
       }
 
 let Rule =
@@ -727,13 +743,13 @@ $ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml \
           , merge =
               Some
               { method =
-                  Some "squash"
+                  Some < merge | rebase | squash >.squash
               , rebase_fallback =
-                  None Text
+                  None < merge | null | squash >
               , strict =
                   Some < dumb : Bool | smart >.smart
               , strict_method =
-                  None Text
+                  None < merge | rebase >
               }
           }
       , conditions =
@@ -754,13 +770,13 @@ $ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml \
           , merge =
               None
                 { method :
-                    Optional Text
+                    Optional < merge | rebase | squash >
                 , rebase_fallback :
-                    Optional Text
+                    Optional < merge | null | squash >
                 , strict :
                     Optional < dumb : Bool | smart >
                 , strict_method :
-                    Optional Text
+                    Optional < merge | rebase >
                 }
           }
       , conditions =
@@ -783,13 +799,13 @@ $ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml \
           , merge =
               None
                 { method :
-                    Optional Text
+                    Optional < merge | rebase | squash >
                 , rebase_fallback :
-                    Optional Text
+                    Optional < merge | null | squash >
                 , strict :
                     Optional < dumb : Bool | smart >
                 , strict_method :
-                    Optional Text
+                    Optional < merge | rebase >
                 }
           }
       , conditions =
@@ -811,34 +827,34 @@ Let's create a `backport` function that we can invoke repeatedly for each backpo
 ```haskell
 let backport =
       { actions =
-          { backport =
-              Some { branches = Some [ "1.0.x" ] }
-          , delete_head_branch =
-              None {}
-          , label =
-              Some
-              { add =
-                  None (List Text)
-              , remove =
-                  Some [ "status:backport-1.0" ]
-              }
-          , merge =
-              None
-                { method :
-                    Optional Text
-                , rebase_fallback :
-                    Optional Text
-                , strict :
-                    Optional < dumb : Bool | smart >
-                , strict_method :
-                    Optional Text
+                { backport =
+                    Some { branches = Some [ "1.0.x" ] }
+                , delete_head_branch =
+                    None {}
+                , label =
+                    Some
+                    { add =
+                        None (List Text)
+                    , remove =
+                        Some [ "status:backport-1.0" ]
+                    }
+                , merge =
+                    None
+                      { method :
+                          Optional < merge | rebase | squash >
+                      , rebase_fallback :
+                          Optional < merge | null | squash >
+                      , strict :
+                          Optional < dumb : Bool | smart >
+                      , strict_method :
+                          Optional < merge | rebase >
+                      }
                 }
-          }
-      , conditions =
-          [ "merged", "label=status:backport-1.0" ]
-      , name =
-          "backport patches to 1.0.x branch"
-      }
+            , conditions =
+                [ "merged", "label=status:backport-1.0" ]
+            , name =
+                "backport patches to 1.0.x branch"
+            }
 
 in  ...
 ```
@@ -847,36 +863,36 @@ The only thing that changes between each backport rule is the version number, so
 
 ```haskell
 let backport =
-          \(version : Text)
-      ->  { actions =
-              { backport =
-                  Some { branches = Some [ "${version}.x" ] }
-              , delete_head_branch =
-                  None {}
-              , label =
-                  Some
-                  { add =
-                      None (List Text)
-                  , remove =
-                      Some [ "status:backport-${version}" ]
+        λ(version : Text)
+      → { actions =
+            { backport =
+                Some { branches = Some [ "${version}.x" ] }
+            , delete_head_branch =
+                None {}
+            , label =
+                Some
+                { add =
+                    None (List Text)
+                , remove =
+                    Some [ "status:backport-${version}" ]
+                }
+            , merge =
+                None
+                  { method :
+                      Optional < merge | rebase | squash >
+                  , rebase_fallback :
+                      Optional < merge | null | squash >
+                  , strict :
+                      Optional < dumb : Bool | smart >
+                  , strict_method :
+                      Optional < merge | rebase >
                   }
-              , merge =
-                  None
-                    { method :
-                        Optional Text
-                    , rebase_fallback :
-                        Optional Text
-                    , strict :
-                        Optional < dumb : Bool | smart >
-                    , strict_method :
-                        Optional Text
-                    }
-              }
-          , conditions =
-              [ "merged", "label=status:backport-${version}" ]
-          , name =
-              "backport patches to ${version}.x branch"
-          }
+            }
+        , conditions =
+            [ "merged", "label=status:backport-${version}" ]
+        , name =
+            "backport patches to ${version}.x branch"
+        }
 
 in  { pull_request_rules =
         [ { actions =
@@ -894,13 +910,13 @@ in  { pull_request_rules =
               , merge =
                   Some
                   { method =
-                      Some "squash"
+                      Some < merge | rebase | squash >.squash
                   , rebase_fallback =
-                      None Text
+                      None < merge | null | squash >
                   , strict =
                       Some < dumb : Bool | smart >.smart
                   , strict_method =
-                      None Text
+                      None < merge | rebase >
                   }
               }
           , conditions =
@@ -926,13 +942,13 @@ in  { pull_request_rules =
               , merge =
                   None
                     { method :
-                        Optional Text
+                        Optional < merge | rebase | squash >
                     , rebase_fallback :
-                        Optional Text
+                        Optional < merge | null | squash >
                     , strict :
                         Optional < dumb : Bool | smart >
                     , strict_method :
-                        Optional Text
+                        Optional < merge | rebase >
                     }
               }
           , conditions =
