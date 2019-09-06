@@ -650,16 +650,23 @@ let Label = { add : Optional (List Text), remove : Optional (List Text) }
     |                   |                  |         | are `merge` or    |
     |                   |                  |         | `rebase`          |
 -}
+let Method = < merge | squash | rebase >
+
+let RebaseFallback = < merge | squash | null >
+
+let Strict = < dumb : Bool | smart >
+
+let StrictMethod = < merge | rebase >
 
 let Merge =
       { method :
-          Optional < merge | squash | rebase >
+          Optional Method
       , rebase_fallback :
-          Optional < merge | squash | null >
+          Optional RebaseFallback
       , strict :
-          Optional < dumb : Bool | smart >
+          Optional Strict
       , strict_method :
-          Optional < merge | rebase >
+          Optional StrictMethod
       }
 
 let Action = JSON/Type
@@ -689,34 +696,37 @@ let DeleteHeadBranch = {}
 
 let Label = { add : Optional (List Text), remove : Optional (List Text) }
 
+let Method = < merge | squash | rebase >
+
+let RebaseFallback = < merge | squash | null >
+
+let Strict = < dumb : Bool | smart >
+
+let StrictMethod = < merge | rebase >
+
 let Merge =
       { method :
-          Optional < merge | squash | rebase >
+          Optional Method
       , rebase_fallback :
-          Optional < merge | squash | null >
+          Optional RebaseFallback
       , strict :
-          Optional < dumb : Bool | smart >
+          Optional Strict
       , strict_method :
-          Optional < merge | rebase >
+          Optional StrictMethod
       }
 
-let Rule =
-      { name :
-          Text
-      , conditions :
-          List Condition
-      , actions :
-       -- ↓ No more arbitrary YAML left
-          { backport :
-              Optional Backport
-          , delete_head_branch :
-              Optional DeleteHeadBranch
-          , label :
-              Optional Label
-          , merge :
-              Optional Merge
-          }
+let Actions =
+      { backport :
+          Optional Backport
+      , delete_head_branch :
+          Optional DeleteHeadBranch
+      , label :
+          Optional Label
+      , merge :
+          Optional Merge
       }
+
+let Rule = { name : Text, conditions : List Condition, actions : Actions }
 
 let Configuration = { pull_request_rules : List Rule }
 
@@ -967,18 +977,48 @@ in  { pull_request_rules =
 
 ... which we use above to simplify the last 5 backport-related rules.
 
-Finally, we can define some shared union types that we can reuse repeatedly:
+Finally, we can reuse the types we defined within our `./schema.dhall` file to simplify the configuration file further:
 
 ```haskell
-let Method = < merge | rebase | squash >
+let Condition = Text
 
-let RebaseFallback = < merge | null | squash >
+let Backport = { branches : Optional (List Text) }
+
+let DeleteHeadBranch = {}
+
+let Label = { add : Optional (List Text), remove : Optional (List Text) }
+
+let Method = < merge | squash | rebase >
+
+let RebaseFallback = < merge | squash | null >
 
 let Strict = < dumb : Bool | smart >
 
 let StrictMethod = < merge | rebase >
 
--- ↑ Shared types ...
+let Merge =
+      { method :
+          Optional Method
+      , rebase_fallback :
+          Optional RebaseFallback
+      , strict :
+          Optional Strict
+      , strict_method :
+          Optional StrictMethod
+      }
+
+let Actions =
+      { backport :
+          Optional Backport
+      , delete_head_branch :
+          Optional DeleteHeadBranch
+      , label :
+          Optional Label
+      , merge :
+          Optional Merge
+      }
+
+let Rule = { name : Text, conditions : List Condition, actions : Actions }
 
 let backport =
         λ(version : Text)
@@ -986,7 +1026,7 @@ let backport =
             { backport =
                 Some { branches = Some [ "${version}.x" ] }
             , delete_head_branch =
-                None {}
+                None DeleteHeadBranch
             , label =
                 Some
                 { add =
@@ -995,17 +1035,7 @@ let backport =
                     Some [ "status:backport-${version}" ]
                 }
             , merge =
-                None
-                  -- ↓ ... which we can use here
-                  { method :
-                      Optional Method
-                  , rebase_fallback :
-                      Optional RebaseFallback
-                  , strict :
-                      Optional Strict
-                  , strict_method :
-                      Optional StrictMethod
-                  }
+                None Merge
             }
         , conditions =
             [ "merged", "label=status:backport-${version}" ]
@@ -1016,25 +1046,19 @@ let backport =
 in  { pull_request_rules =
         [ { actions =
               { backport =
-                  None { branches : Optional (List Text) }
+                  None Backport
               , delete_head_branch =
-                  None {}
+                  None DeleteHeadBranch
               , label =
-                  None
-                    { add :
-                        Optional (List Text)
-                    , remove :
-                        Optional (List Text)
-                    }
+                  None Label
               , merge =
                   Some
-                  -- ↓ ... and here
                   { method =
-                      Some Method.squash
+                      Some < merge | rebase | squash >.squash
                   , rebase_fallback =
                       None RebaseFallback
                   , strict =
-                      Some Strict.smart
+                      Some < dumb : Bool | smart >.smart
                   , strict_method =
                       None StrictMethod
                   }
@@ -1049,28 +1073,13 @@ in  { pull_request_rules =
           }
         , { actions =
               { backport =
-                  None { branches : Optional (List Text) }
+                  None Backport
               , delete_head_branch =
                   Some {=}
               , label =
-                  None
-                    { add :
-                        Optional (List Text)
-                    , remove :
-                        Optional (List Text)
-                    }
+                  None Label
               , merge =
-                  None
-                    -- ↓ ... and here
-                    { method :
-                        Optional Method
-                    , rebase_fallback :
-                        Optional RebaseFallback
-                    , strict :
-                        Optional Strict
-                    , strict_method :
-                        Optional StrictMethod
-                    }
+                  None Merge
               }
           , conditions =
               [ "merged" ]
