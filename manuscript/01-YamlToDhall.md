@@ -873,7 +873,7 @@ The only thing that changes between each backport rule is the version number, so
 
 ```haskell
 let backport =
-        λ(version : Text)
+        \(version : Text)
       → { actions =
             { backport =
                 Some { branches = Some [ "${version}.x" ] }
@@ -1021,7 +1021,7 @@ let Actions =
 let Rule = { name : Text, conditions : List Condition, actions : Actions }
 
 let backport =
-        λ(version : Text)
+        \(version : Text)
       → { actions =
             { backport =
                 Some { branches = Some [ "${version}.x" ] }
