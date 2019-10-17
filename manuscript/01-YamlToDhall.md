@@ -1054,11 +1054,11 @@ in  { pull_request_rules =
               , merge =
                   Some
                   { method =
-                      Some < merge | rebase | squash >.squash
+                      Some Method.squash
                   , rebase_fallback =
                       None RebaseFallback
                   , strict =
-                      Some < dumb : Bool | smart >.smart
+                      Some Strict.smart
                   , strict_method =
                       None StrictMethod
                   }
