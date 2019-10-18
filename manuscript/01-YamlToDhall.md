@@ -1,6 +1,6 @@
 # How to convert an existing YAML configuration file to Dhall
 
-This chapter explains how to transform a YAML configuration file into an equivalent Dhall configuration file with the assistance of the `yaml-to-dhall` command-line tool.
+This chapter explains how to transform a non-trivial YAML configuration file into an equivalent Dhall configuration file with the assistance of the `yaml-to-dhall` command-line tool.  This comes in handy when translating large configuration files, which are tedious to translate by hand.
 
 ## The Problem
 
@@ -104,17 +104,17 @@ The above list of rules instructs Mergify to automatically:
 
 * "squash merge" pull requests with a `merge me` label and at least one approval
 * delete all merged branches
-* backport pull requests to release branches if they have a `backport-*` label
+* backport pull requests to release branches if they have the correct `backport-*` label
 
-The last five rules are nearly identical because we need to copy, paste, and modify the backporting logic every time we create a new release branch.
+The last six backport-related rules are nearly identical because we need to copy, paste, and modify the backporting logic every time we create a new release branch.
 
 We can reduce that repetition, but first we need to translate the configuration file as literally as possible to Dhall.  After that we can use Dhall's programming language features to factor out repetitive rules.
 
-We'll use the `yaml-to-dhall` command-line tool to translate our YAML configuration file to a Dhall configuration file rather than translating the file by hand (which is error-prone).  However, we need to provide `yaml-to-dhall` with an expected Dhall type in order to perform the translation.  Picking the right Dhall type is not as difficult as translating the entire file, but it's also not trivial, so we'll step through the process of selecting an appropriate type.
+We'll use the `yaml-to-dhall` command-line tool to translate our YAML configuration file into a Dhall configuration file rather than translating the file by hand (which is error-prone).  However, we need to provide `yaml-to-dhall` with an expected Dhall type in order to perform the translation.  Picking the right Dhall type is not as difficult as translating the entire file, but it's also not trivial, so we'll step through the process of selecting an appropriate type.
 
 ## Arbitrary YAML
 
-First, you can always opt to decode an arbitrary YAML configuration into a Dhall expression of the following type:
+First, you can always decode an arbitrary YAML configuration into a Dhall expression of the following type:
 
 ```haskell
 https://prelude.dhall-lang.org/JSON/Type
@@ -147,8 +147,7 @@ The reason that the type says "JSON" is because Dhall uses the same representati
 Let's quickly verify that `yaml-to-dhall` can use that type to translate our Mergify configuration into a Dhall expression:
 
 ```bash
-$ yaml-to-dhall --ascii https://prelude.dhall-lang.org/JSON/Type < ./mergify.yml \
->     | tee ./mergify.dhall
+$ yaml-to-dhall --ascii https://prelude.dhall-lang.org/JSON/Type < ./mergify.yml | tee ./mergify.dhall
 ```
 ```haskell
     \(JSON : Type)
@@ -266,11 +265,11 @@ pull_request_rules:
 
 This matches our original YAML configuration, except that the keys are now sorted, which is unavoidable as `dhall-to-yaml` [does not yet support](https://github.com/dhall-lang/dhall-haskell/issues/1187) preserving the original field order.  Fortunately, the meaning of the configuration does not change when reordering fields.
 
-The type `https://prelude.dhall-lang.org/JSON/Type` is a "weak" type, meaning that the type guarantees little about expressions having that type.  For example, our Mergify configuration should always have an outer field named `pull_request_rules`, but you would not be able to infer the presence of that field from the type we specified.
+The type `https://prelude.dhall-lang.org/JSON/Type` is a "weak" type, meaning that we cannot guarantee much for expressions having that type.  For example, our Mergify configuration should always have an outer field named `pull_request_rules`, but you would not be able to infer the presence of that field from the type.
 
 ## Strong types
 
-We could technically accept that translation to Dhall and begin factoring out repetition in the generated Dhall code.  However, I generally recommend translating YAML to a Dhall expression with a "stronger" type when possible.
+We could stop there and begin factoring out repetition in the generated Dhall code.  However, I generally recommend translating YAML to a Dhall expression with a "stronger" type when possible.
 
 A "strong" type is the opposite of a "weak" type.  The "stronger" the type, the more guarantees the type provides about values having that type.  Ideally, we would like to "strengthen" the type of our Dhall configuration file until we're left with as little arbitrary YAML as possible.  In fact, we can remove all arbitrary YAML from our configuration because Mergify documents their entire YAML schema.
 
@@ -290,8 +289,9 @@ let Configuration = { pull_request_rules : JSON/Type }
 in  Configuration
 ```
 
-Here we've created a file named `schema.dhall` to store the expected Dhall type (a.k.a. "the schema") so that we don't have to fit that entire type on the command line.  For example, you can test drive the above schema works by
-running:
+Now the outermost type (named `Configuration`) is a record with one field named `pull_request_rules`, but the contents of that field could still be arbitrary YAML.
+
+Here we've created a file named `schema.dhall` to store the expected Dhall type (a.k.a. "the schema") so that we don't have to fit that entire type on the command line.  For example, you can test drive the above schema works by running:
 
 ```bash
 $ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml
@@ -302,9 +302,9 @@ $ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml
 }
 ```
 
-We'll continue to expand upon this `./schema.dhall` file as we convert the Mergify schema to the equivalent Dhall type.
+We'll continue to expand upon this `./schema.dhall` file as we store what we learn about the Mergify schema in the equivalent Dhall type.
 
-The Mergify schema then says that:
+The Mergify schema also says that:
 
 > ... The value of the `pull_request_rules` key must be a list of dictionary.
 >
@@ -464,7 +464,7 @@ $ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml
 
 Now the generated expression begins to resemble a Dhall configuration we might write by hand.  The outer record is an ordinary Dhall record and the `pull_request_rules` field of that record contains an ordinary Dhall `List`.  However, the "leaves" of our expression are still arbitrary YAML that we need to narrow to more specific types.
 
-So far we've used `JSON/Type` as a type-level `TODO` for our YAML schema that we can insert when we're not sure what some subexpression's type should be.
+So far we've used `JSON/Type` as a type-level `TODO` for our YAML schema that we can insert when we're not sure what some subexpression's type should be.  This trick allows us to incrementally migrate from a weakly-typed configuration to a strongly-typed one.
 
 ## Keep it simple
 
@@ -738,8 +738,7 @@ Note that our record of `actions` also has all `Optional` fields, indicating tha
 This completes our schema, which we can now use to convert our YAML to Dhall:
 
 ```bash
-$ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml \
->     | tee mergify.dhall
+$ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml | tee mergify.dhall
 ```
 ```haskell
 { pull_request_rules =
@@ -828,7 +827,7 @@ $ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml \
 }
 ```
 
-The above snippet truncates the output since the generated Dhall configuration starts off large, but now that we have valid Dhall code we can begin factoring out repetition!
+The above snippet truncates the output since the generated Dhall configuration starts off large, but now that we have valid Dhall code we can begin using programming features to reduce repetition.
 
 ## Simplification
 
@@ -971,11 +970,12 @@ in  { pull_request_rules =
         , backport "1.2"
         , backport "1.3"
         , backport "1.4"
+        , backport "1.5"
         ]
     }
 ```
 
-... which we use above to simplify the last 5 backport-related rules.
+... which we use above to simplify the last 6 backport-related rules.
 
 Finally, we can reuse the types we defined within our `./schema.dhall` file to simplify the configuration file further:
 
@@ -1095,36 +1095,10 @@ in  { pull_request_rules =
     }
 ```
 
-## Omitting `null`
-
-If we convert our Dhall configuration back to YAML we will get gratuitous `null`s wherever our configuration contains a `None`:
+Finally, we can convert back to YAML to confirm that everything still works:
 
 ```bash
 $ dhall-to-yaml --file ./mergify.dhall
-```
-```yaml
-pull_request_rules:
-- actions:
-    backport: null
-    delete_head_branch: null
-    merge:
-      strict: smart
-      rebase_fallback: null
-      method: squash
-      strict_method: null
-    label: null
-  name: Automatically merge pull requests
-  conditions:
-  - status-success=continuous-integration/appveyor/pr
-  - label=merge me
-  - '#approved-reviews-by>=1'
-- ...
-```
-
-We usually do not want this, since most YAML configuration files omit fields rather than set them to `null`, so `dhall-to-yaml` provides support for removing all `null`s using the `--omitNull` flag:
-
-```bash
-$ dhall-to-yaml --omitNull --file ./mergify.dhall
 ```
 ```yaml
 pull_request_rules:
