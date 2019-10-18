@@ -19,3 +19,5 @@ Each chapter is written to be as self-contained as possible, yet they will build
 Reading this manual will give you the confidence and ability to share the Dhall configuration language with your colleagues.  Does a new person need assistance setting up their development environment to use Dhall?  Is somebody stuck on a tricky type error?  Do several contributors need to agree upon an opinionated project layout?  There's a ready-to-share chapter for each of those subjects (and more) that you can recommend to others.
 
 You can trust that the advice in this book reflects best practices because I've spent years using the language, supporting other users (both open source and commercial), and steering the ecosystem as the original author of the language.
+
+Continue reading on if you wish to build upon a software foundation that you can trust.  By the conclusion of this book you can expect to deploy with confidence and measurably reduce your work's defect rate.
