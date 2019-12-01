@@ -35,6 +35,7 @@
       service call or multiplexing data)
     * Translating traditional terms (e.g. "schema"/"template") into Dhall
       terminology (i.e. "type"/"function")
+    * Use `dhall hash` to verify that a refactor was behavior-preserving
 * For package authors
     * Running example: Packing Dhall bindings to Mergify configuration
     * How to create a systematic binding to widely used configuration
