@@ -761,26 +761,26 @@ The only thing that changes between each backport rule is the version number, so
 
 ```haskell
 let backport =
-        λ(version : Text)
-      → { actions =
-            { backport = Some { branches = Some [ "${version}.x" ] }
-            , delete_head_branch = None {}
-            , label =
-                Some
-                  { add = None (List Text)
-                  , remove = Some [ "status:backport-${version}" ]
-                  }
-            , merge =
-                None
-                  { method : Optional < merge | rebase | squash >
-                  , rebase_fallback : Optional < merge | null | squash >
-                  , strict : Optional < dumb : Bool | smart >
-                  , strict_method : Optional < merge | rebase >
-                  }
-            }
-        , conditions = [ "merged", "label=status:backport-${version}" ]
-        , name = "backport patches to ${version}.x branch"
-        }
+          \(version : Text)
+      ->  { actions =
+              { backport = Some { branches = Some [ "${version}.x" ] }
+              , delete_head_branch = None {}
+              , label =
+                  Some
+                    { add = None (List Text)
+                    , remove = Some [ "status:backport-${version}" ]
+                    }
+              , merge =
+                  None
+                    { method : Optional < merge | rebase | squash >
+                    , rebase_fallback : Optional < merge | null | squash >
+                    , strict : Optional < dumb : Bool | smart >
+                    , strict_method : Optional < merge | rebase >
+                    }
+              }
+          , conditions = [ "merged", "label=status:backport-${version}" ]
+          , name = "backport patches to ${version}.x branch"
+          }
 
 in  { pull_request_rules =
         [ { actions =
@@ -873,20 +873,20 @@ let Actions =
 let Rule = { name : Text, conditions : List Condition, actions : Actions }
 
 let backport =
-        λ(version : Text)
-      → { actions =
-            { backport = Some { branches = Some [ "${version}.x" ] }
-            , delete_head_branch = None DeleteHeadBranch
-            , label =
-                Some
-                  { add = None (List Text)
-                  , remove = Some [ "status:backport-${version}" ]
-                  }
-            , merge = None Merge
-            }
-        , conditions = [ "merged", "label=status:backport-${version}" ]
-        , name = "backport patches to ${version}.x branch"
-        }
+          \(version : Text)
+      ->  { actions =
+              { backport = Some { branches = Some [ "${version}.x" ] }
+              , delete_head_branch = None DeleteHeadBranch
+              , label =
+                  Some
+                    { add = None (List Text)
+                    , remove = Some [ "status:backport-${version}" ]
+                    }
+              , merge = None Merge
+              }
+          , conditions = [ "merged", "label=status:backport-${version}" ]
+          , name = "backport patches to ${version}.x branch"
+          }
 
 in  { pull_request_rules =
         [ { actions =
