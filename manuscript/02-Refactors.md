@@ -3,41 +3,11 @@
 The Dhall language and tooling are optimized for "maintainability" and one
 aspect of that is ease of refactoring existing configuration files.
 
-This chapter begins from the repetitive Dhall configuration we generated from YAML at the end of the previous chapter and uses functions to reduce repetition.  We will also verify that the refactor is behavior-preserving along the way.
+In this chapter we will use functions to reduce repetition and also verify that our refactor is behavior-preserving along the way, beginning from the following Dhall configuration file we generated at the end of the previous chapter:
 
-## Semantic integrity checks
+```haskell
+-- ./mergify.dhall
 
-Before starting our refactor we can create a digest (a.k.a. a checksum) of the result, like this:
-
-```bash
-$ dhall hash --file ./mergify.dhall 
-sha256:40e5e1ea3553a14ae667e292506f70b74f02501b86cf496753f8f059fd939c2f
-```
-
-If our refactor does not change the result then the digest should remain the same.
-
-This digest is known as a "semantic integrity check" or a "semantic hash" for short.  Unlike a traditional digest this is a hash of a CBOR encoding of the syntax tree in a canonical normal form.
-
-In other words, you could obtain the same hash by chaining the following steps:
-
-```bash
-$ dhall --alpha --file ./mergify.dhall | dhall encode | shasum --algorithm 256 --binary
-40e5e1ea3553a14ae667e292506f70b74f02501b86cf496753f8f059fd939c2f  *-
-```
-
-... where:
-
-* `dhall --alpha` reduces an expression to a canonical normal form
-* `dhall encode` encodes the expression according to a [standard CBOR representation](https://github.com/dhall-lang/dhall-lang/blob/master/standard/binary.md)
-* `shasum --algorithm 256 --binary` hashes the bytes of the CBOR representation to give us the final digest
-
-With this digest in hand we can safely begin to refactor.
-
-## Simplification
-
-The previous chapter concluded with the following Dhall configuration file containing several repetitive backport-related rules:
-
-```dhall
 { pull_request_rules =
     [ { actions =
           { backport = None { branches : Optional (List Text) }
@@ -91,7 +61,70 @@ The previous chapter concluded with the following Dhall configuration file conta
       , conditions = [ "merged", "label=backport-1.0" ]
       , name = "backport patches to 1.0.x branch"
       }
-    , ...
+    , { actions =
+          { backport = Some { branches = Some [ "1.1.x" ] }
+          , delete_head_branch = None {}
+          , label =
+              Some { add = None (List Text), remove = Some [ "backport-1.1" ] }
+          , merge =
+              None
+                { method : Optional < merge | rebase | squash >
+                , rebase_fallback : Optional < merge | null | squash >
+                , strict : Optional < dumb : Bool | smart >
+                , strict_method : Optional < merge | rebase >
+                }
+          }
+      , conditions = [ "merged", "label=backport-1.1" ]
+      , name = "backport patches to 1.1.x branch"
+      }
+    , { actions =
+          { backport = Some { branches = Some [ "1.2.x" ] }
+          , delete_head_branch = None {}
+          , label =
+              Some { add = None (List Text), remove = Some [ "backport-1.2" ] }
+          , merge =
+              None
+                { method : Optional < merge | rebase | squash >
+                , rebase_fallback : Optional < merge | null | squash >
+                , strict : Optional < dumb : Bool | smart >
+                , strict_method : Optional < merge | rebase >
+                }
+          }
+      , conditions = [ "merged", "label=backport-1.2" ]
+      , name = "backport patches to 1.2.x branch"
+      }
+    , { actions =
+          { backport = Some { branches = Some [ "1.3.x" ] }
+          , delete_head_branch = None {}
+          , label =
+              Some { add = None (List Text), remove = Some [ "backport-1.3" ] }
+          , merge =
+              None
+                { method : Optional < merge | rebase | squash >
+                , rebase_fallback : Optional < merge | null | squash >
+                , strict : Optional < dumb : Bool | smart >
+                , strict_method : Optional < merge | rebase >
+                }
+          }
+      , conditions = [ "merged", "label=backport-1.3" ]
+      , name = "backport patches to 1.3.x branch"
+      }
+    , { actions =
+          { backport = Some { branches = Some [ "1.4.x" ] }
+          , delete_head_branch = None {}
+          , label =
+              Some { add = None (List Text), remove = Some [ "backport-1.4" ] }
+          , merge =
+              None
+                { method : Optional < merge | rebase | squash >
+                , rebase_fallback : Optional < merge | null | squash >
+                , strict : Optional < dumb : Bool | smart >
+                , strict_method : Optional < merge | rebase >
+                }
+          }
+      , conditions = [ "merged", "label=backport-1.4" ]
+      , name = "backport patches to 1.4.x branch"
+      }
     , { actions =
           { backport = Some { branches = Some [ "1.5.x" ] }
           , delete_head_branch = None {}
@@ -111,6 +144,36 @@ The previous chapter concluded with the following Dhall configuration file conta
     ]
 }
 ```
+
+## Semantic integrity checks
+
+Before starting our refactor we can create a digest (a.k.a. a checksum) of the result, like this:
+
+```bash
+$ dhall hash --file ./mergify.dhall 
+sha256:40e5e1ea3553a14ae667e292506f70b74f02501b86cf496753f8f059fd939c2f
+```
+
+If our refactor does not change the result then the digest should remain the same.
+
+This digest is known as a "semantic integrity check" or a "semantic hash" for short.  Unlike a traditional digest this is a hash of a CBOR encoding of the syntax tree in a canonical normal form.
+
+In other words, you could obtain the same hash by chaining the following steps:
+
+```bash
+$ dhall --alpha --file ./mergify.dhall | dhall encode | shasum --algorithm 256 --binary
+40e5e1ea3553a14ae667e292506f70b74f02501b86cf496753f8f059fd939c2f  *-
+```
+
+... where:
+
+* `dhall --alpha` reduces an expression to a canonical normal form
+* `dhall encode` encodes the expression according to a [standard CBOR representation](https://github.com/dhall-lang/dhall-lang/blob/master/standard/binary.md)
+* `shasum --algorithm 256 --binary` hashes the bytes of the CBOR representation to give us the final digest
+
+With this digest in hand we can safely begin to refactor.
+
+## Simplification
 
 We can reduce this repetition by creating a `backport` function that we can then invoke repeatedly.
 
