@@ -4,11 +4,13 @@ This chapter explains how to transform a non-trivial YAML configuration file int
 
 ## The Problem
 
-We'll use a [Mergify](https://mergify.io/) configuration file as our running example, where Mergify is a GitHub App that can automatically merge and backport pull requests.  You configure the app's behavior through a YAML configuration file named `.mergify.yml` checked into the base branch of your repository.
+We'll use a [Mergify](https://mergify.io/) configuration file as our running example, where Mergify is a GitHub App that can automatically merge and backport pull requests.
 
-Let's illustrate the problem with the following representative `.mergify.yml` configuration, which you can skim for now:
+The Mergify app is configured with a YAML configuration file named `.mergify.yml` that might look like the following representative example:
 
 ```yaml
+# ./.mergify.yml
+
 pull_request_rules:
 
   - name: Automatically merge pull requests
@@ -103,10 +105,10 @@ pull_request_rules:
 The above list of rules instructs Mergify to automatically:
 
 * "squash merge" pull requests with a `merge me` label and at least one approval
-* delete all merged branches
+* delete branches after they are merged
 * backport pull requests to release branches if they have the correct `backport-*` label
 
-The last six backport-related rules are nearly identical because we need to copy, paste, and modify the backporting logic every time we create a new release branch.
+The last six backport-related rules are nearly identical because we need to copy, paste, and modify the backport-related logic every time we create a new release branch.
 
 We can reduce that repetition, but first we need to translate the configuration file as literally as possible to Dhall.  After that we can use Dhall's programming language features to factor out repetitive rules.
 
@@ -123,23 +125,17 @@ https://prelude.dhall-lang.org/JSON/Type
 ... which is a convenient remote import that evaluates to:
 
 ```haskell
-    forall (JSON : Type)
-->  forall  ( json
-            : { array :
-                  List JSON -> JSON
-              , bool :
-                  Bool -> JSON
-              , null :
-                  JSON
-              , number :
-                  Double -> JSON
-              , object :
-                  List { mapKey : Text, mapValue : JSON } -> JSON
-              , string :
-                  Text -> JSON
-              }
-            )
-->  JSON
+  ∀(JSON : Type)
+→ ∀ ( json
+    : { array : List JSON → JSON
+      , bool : Bool → JSON
+      , null : JSON
+      , number : Double → JSON
+      , object : List { mapKey : Text, mapValue : JSON } → JSON
+      , string : Text → JSON
+      }
+    )
+→ JSON
 ```
 
 The reason that the type says "JSON" is because Dhall uses the same representation for modeling both arbitrary JSON and arbitrary YAML, so they share the above type.
@@ -147,23 +143,17 @@ The reason that the type says "JSON" is because Dhall uses the same representati
 Let's quickly verify that `yaml-to-dhall` can use that type to translate our Mergify configuration into a Dhall expression:
 
 ```bash
-$ yaml-to-dhall --ascii https://prelude.dhall-lang.org/JSON/Type < ./mergify.yml | tee ./mergify.dhall
+$ yaml-to-dhall --ascii https://prelude.dhall-lang.org/JSON/Type < ./.mergify.yml | tee ./mergify.dhall
 ```
 ```haskell
     \(JSON : Type)
 ->  \ ( json
-      : { array :
-            List JSON -> JSON
-        , bool :
-            Bool -> JSON
-        , null :
-            JSON
-        , number :
-            Double -> JSON
-        , object :
-            List { mapKey : Text, mapValue : JSON } -> JSON
-        , string :
-            Text -> JSON
+      : { array : List JSON -> JSON
+        , bool : Bool -> JSON
+        , null : JSON
+        , number : Double -> JSON
+        , object : List { mapKey : Text, mapValue : JSON } -> JSON
+        , string : Text -> JSON
         }
       )
 ->  json.object
@@ -176,19 +166,14 @@ $ yaml-to-dhall --ascii https://prelude.dhall-lang.org/JSON/Type < ./mergify.yml
                         "actions"
                     , mapValue =
                         json.object
-                          [ { mapKey =
-                                "merge"
+                          [ { mapKey = "merge"
                             , mapValue =
                                 json.object
-                                  [ { mapKey =
-                                        "strict"
-                                    , mapValue =
-                                        json.string "smart"
+                                  [ { mapKey = "strict"
+                                    , mapValue = json.string "smart"
                                     }
-                                  , { mapKey =
-                                        "method"
-                                    , mapValue =
-                                        json.string "squash"
+                                  , { mapKey = "method"
+                                    , mapValue = json.string "squash"
                                     }
                                   ]
                             }
@@ -216,19 +201,14 @@ You can better understand the generated Dhall expression by ignoring the first 1
                         "actions"
                     , mapValue =
                         json.object
-                          [ { mapKey =
-                                "merge"
+                          [ { mapKey = "merge"
                             , mapValue =
                                 json.object
-                                  [ { mapKey =
-                                        "strict"
-                                    , mapValue =
-                                        json.string "smart"
+                                  [ { mapKey = "strict"
+                                    , mapValue = json.string "smart"
                                     }
-                                  , { mapKey =
-                                        "method"
-                                    , mapValue =
-                                        json.string "squash"
+                                  , { mapKey = "method"
+                                    , mapValue = json.string "squash"
                                     }
                                   ]
                             }
@@ -294,7 +274,7 @@ Now the outermost type (named `Configuration`) is a record with one field named 
 Here we've created a file named `schema.dhall` to store the expected Dhall type (a.k.a. "the schema") so that we don't have to fit that entire type on the command line.  For example, you can test drive the above schema works by running:
 
 ```bash
-$ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml
+$ yaml-to-dhall --ascii ./schema.dhall < ./.mergify.yml
 ```
 ```haskell
 { pull_request_rules =
@@ -352,15 +332,12 @@ let Action = JSON/Type
           -- ↑ We also still do not know what an `Action` could be
 
 let Rule =
-      { name :
-          Text
-       -- ↑ "string"
-      , conditions :
-          List Condition
-       -- ↑ "array of Conditions"
-      , actions :
-          List { mapKey : Text, mapValue : Action }
-       -- ↑ "dictionary of Actions"
+      { name       : Text
+                  -- ↑ "string"
+      , conditions : List Condition
+                  -- ↑ "array of Conditions"
+      , actions    : List { mapKey : Text, mapValue : Action }
+                  -- ↑ "dictionary of Actions"
       }
 
 let Configuration = { pull_request_rules : List Rule }
@@ -371,28 +348,22 @@ in  Configuration
 `yaml-to-dhall` can then use the above type to produce a more structured Dhall expression:
 
 ```bash
-$ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml
+$ yaml-to-dhall --ascii ./schema.dhall < ./.mergify.yml
 ```
 ```haskell
 { pull_request_rules =
     [ { actions =
-          [ { mapKey =
-                "merge"
+          [ { mapKey = "merge"
             , mapValue =
                     \(JSON : Type)
                 ->  \ ( json
-                      : { array :
-                            List JSON -> JSON
-                        , bool :
-                            Bool -> JSON
-                        , null :
-                            JSON
-                        , number :
-                            Double -> JSON
+                      : { array : List JSON -> JSON
+                        , bool : Bool -> JSON
+                        , null : JSON
+                        , number : Double -> JSON
                         , object :
                             List { mapKey : Text, mapValue : JSON } -> JSON
-                        , string :
-                            Text -> JSON
+                        , string : Text -> JSON
                         }
                       )
                 ->  json.object
@@ -404,58 +375,39 @@ $ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml
       , conditions =
           [     \(JSON : Type)
             ->  \ ( json
-                  : { array :
-                        List JSON -> JSON
-                    , bool :
-                        Bool -> JSON
-                    , null :
-                        JSON
-                    , number :
-                        Double -> JSON
-                    , object :
-                        List { mapKey : Text, mapValue : JSON } -> JSON
-                    , string :
-                        Text -> JSON
+                  : { array : List JSON -> JSON
+                    , bool : Bool -> JSON
+                    , null : JSON
+                    , number : Double -> JSON
+                    , object : List { mapKey : Text, mapValue : JSON } -> JSON
+                    , string : Text -> JSON
                     }
                   )
             ->  json.string "status-success=continuous-integration/appveyor/pr"
           ,     \(JSON : Type)
             ->  \ ( json
-                  : { array :
-                        List JSON -> JSON
-                    , bool :
-                        Bool -> JSON
-                    , null :
-                        JSON
-                    , number :
-                        Double -> JSON
-                    , object :
-                        List { mapKey : Text, mapValue : JSON } -> JSON
-                    , string :
-                        Text -> JSON
+                  : { array : List JSON -> JSON
+                    , bool : Bool -> JSON
+                    , null : JSON
+                    , number : Double -> JSON
+                    , object : List { mapKey : Text, mapValue : JSON } -> JSON
+                    , string : Text -> JSON
                     }
                   )
             ->  json.string "label=merge me"
           ,     \(JSON : Type)
             ->  \ ( json
-                  : { array :
-                        List JSON -> JSON
-                    , bool :
-                        Bool -> JSON
-                    , null :
-                        JSON
-                    , number :
-                        Double -> JSON
-                    , object :
-                        List { mapKey : Text, mapValue : JSON } -> JSON
-                    , string :
-                        Text -> JSON
+                  : { array : List JSON -> JSON
+                    , bool : Bool -> JSON
+                    , null : JSON
+                    , number : Double -> JSON
+                    , object : List { mapKey : Text, mapValue : JSON } -> JSON
+                    , string : Text -> JSON
                     }
                   )
             ->  json.string "#approved-reviews-by>=1"
           ]
-      , name =
-          "Automatically merge pull requests"
+      , name = "Automatically merge pull requests"
       }
     , ...
     ]
@@ -478,12 +430,9 @@ let Condition = JSON/Type  -- ← Surely we can do better here
 let Action = JSON/Type
 
 let Rule =
-      { name :
-          Text
-      , conditions :
-          List Condition
-      , actions :
-          List { mapKey : Text, mapValue : Action }
+      { name : Text
+      , conditions : List Condition
+      , actions : List { mapKey : Text, mapValue : Action }
       }
 
 let Configuration = { pull_request_rules : List Rule }
@@ -503,12 +452,9 @@ let Condition = Text  -- ← Simple
 let Action = JSON/Type
 
 let Rule =
-      { name :
-          Text
-      , conditions :
-          List Condition
-      , actions :
-          List { mapKey : Text, mapValue : Action }
+      { name : Text
+      , conditions : List Condition
+      , actions : List { mapKey : Text, mapValue : Action }
       }
 
 let Configuration = { pull_request_rules : List Rule }
@@ -532,13 +478,10 @@ let Condition = Text
 let Action = JSON/Type
 
 let Rule =
-      { name :
-          Text
-      , conditions :
-          List Condition
-      , actions :
-          List { mapKey : Text, mapValue : Action }
-       -- ↑ This field actually has a more precise schema
+      { name : Text
+      , conditions : List Condition
+      , actions : List { mapKey : Text, mapValue : Action }
+               -- ↑ This field actually has a more precise schema
       }
 
 let Configuration = { pull_request_rules : List Rule }
@@ -629,8 +572,7 @@ let DeleteHeadBranch = {}
 -}
 let Label = { add : Optional (List Text), remove : Optional (List Text) }
 
-{-
-    | Key name          | Value type       | Default | Value Description |
+{-  | Key name          | Value type       | Default | Value Description |
     |-------------------|------------------|---------|-------------------|
     | `method`          | string           | ...     | ...               |
     |                   |                  |         | Possible values   |
@@ -659,25 +601,18 @@ let Strict = < dumb : Bool | smart >
 let StrictMethod = < merge | rebase >
 
 let Merge =
-      { method :
-          Optional Method
-      , rebase_fallback :
-          Optional RebaseFallback
-      , strict :
-          Optional Strict
-      , strict_method :
-          Optional StrictMethod
+      { method : Optional Method
+      , rebase_fallback : Optional RebaseFallback
+      , strict : Optional Strict
+      , strict_method : Optional StrictMethod
       }
 
 let Action = JSON/Type
 
 let Rule =
-      { name :
-          Text
-      , conditions :
-          List Condition
-      , actions :
-          List { mapKey : Text, mapValue : Action }
+      { name : Text
+      , conditions : List Condition
+      , actions : List { mapKey : Text, mapValue : Action }
       }
 
 let Configuration = { pull_request_rules : List Rule }
@@ -685,7 +620,7 @@ let Configuration = { pull_request_rules : List Rule }
 in  Configuration
 ```
 
-Then we can stick those individual action types inside of a record instead of representing them as a list of key-value pairs:
+Then we can stick those individual action types inside of an `Actions` record instead of representing them as a list of key-value pairs:
 
 ```haskell
 let Condition = Text
@@ -705,25 +640,17 @@ let Strict = < dumb : Bool | smart >
 let StrictMethod = < merge | rebase >
 
 let Merge =
-      { method :
-          Optional Method
-      , rebase_fallback :
-          Optional RebaseFallback
-      , strict :
-          Optional Strict
-      , strict_method :
-          Optional StrictMethod
+      { method : Optional Method
+      , rebase_fallback : Optional RebaseFallback
+      , strict : Optional Strict
+      , strict_method : Optional StrictMethod
       }
 
 let Actions =
-      { backport :
-          Optional Backport
-      , delete_head_branch :
-          Optional DeleteHeadBranch
-      , label :
-          Optional Label
-      , merge :
-          Optional Merge
+      { backport : Optional Backport
+      , delete_head_branch : Optional DeleteHeadBranch
+      , label : Optional Label
+      , merge : Optional Merge
       }
 
 let Rule = { name : Text, conditions : List Condition, actions : Actions }
@@ -738,89 +665,61 @@ Note that our record of `actions` also has all `Optional` fields, indicating tha
 This completes our schema, which we can now use to convert our YAML to Dhall:
 
 ```bash
-$ yaml-to-dhall --ascii ./schema.dhall < ./mergify.yml | tee mergify.dhall
+$ yaml-to-dhall --ascii ./schema.dhall < ./.mergify.yml | tee mergify.dhall
 ```
 ```haskell
 { pull_request_rules =
     [ { actions =
-          { backport =
-              None { branches : Optional (List Text) }
-          , delete_head_branch =
-              None {}
+          { backport = None { branches : Optional (List Text) }
+          , delete_head_branch = None {}
           , label =
               None { add : Optional (List Text), remove : Optional (List Text) }
           , merge =
               Some
-              { method =
-                  Some < merge | rebase | squash >.squash
-              , rebase_fallback =
-                  None < merge | null | squash >
-              , strict =
-                  Some < dumb : Bool | smart >.smart
-              , strict_method =
-                  None < merge | rebase >
-              }
+                { method = Some < merge | rebase | squash >.squash
+                , rebase_fallback = None < merge | null | squash >
+                , strict = Some < dumb : Bool | smart >.smart
+                , strict_method = None < merge | rebase >
+                }
           }
       , conditions =
           [ "status-success=continuous-integration/appveyor/pr"
           , "label=merge me"
           , "#approved-reviews-by>=1"
           ]
-      , name =
-          "Automatically merge pull requests"
+      , name = "Automatically merge pull requests"
       }
     , { actions =
-          { backport =
-              None { branches : Optional (List Text) }
-          , delete_head_branch =
-              Some {=}
+          { backport = None { branches : Optional (List Text) }
+          , delete_head_branch = Some {=}
           , label =
               None { add : Optional (List Text), remove : Optional (List Text) }
           , merge =
               None
-                { method :
-                    Optional < merge | rebase | squash >
-                , rebase_fallback :
-                    Optional < merge | null | squash >
-                , strict :
-                    Optional < dumb : Bool | smart >
-                , strict_method :
-                    Optional < merge | rebase >
+                { method : Optional < merge | rebase | squash >
+                , rebase_fallback : Optional < merge | null | squash >
+                , strict : Optional < dumb : Bool | smart >
+                , strict_method : Optional < merge | rebase >
                 }
           }
-      , conditions =
-          [ "merged" ]
-      , name =
-          "Delete head branch after merge"
+      , conditions = [ "merged" ]
+      , name = "Delete head branch after merge"
       }
     , { actions =
-          { backport =
-              Some { branches = Some [ "1.0.x" ] }
-          , delete_head_branch =
-              None {}
+          { backport = Some { branches = Some [ "1.0.x" ] }
+          , delete_head_branch = None {}
           , label =
-              Some
-              { add =
-                  None (List Text)
-              , remove =
-                  Some [ "status:backport-1.0" ]
-              }
+              Some { add = None (List Text), remove = Some [ "backport-1.0" ] }
           , merge =
               None
-                { method :
-                    Optional < merge | rebase | squash >
-                , rebase_fallback :
-                    Optional < merge | null | squash >
-                , strict :
-                    Optional < dumb : Bool | smart >
-                , strict_method :
-                    Optional < merge | rebase >
+                { method : Optional < merge | rebase | squash >
+                , rebase_fallback : Optional < merge | null | squash >
+                , strict : Optional < dumb : Bool | smart >
+                , strict_method : Optional < merge | rebase >
                 }
           }
-      , conditions =
-          [ "merged", "label=status:backport-1.0" ]
-      , name =
-          "backport patches to 1.0.x branch"
+      , conditions = [ "merged", "label=backport-1.0" ]
+      , name = "backport patches to 1.0.x branch"
       }
     , ...
     ]
@@ -836,34 +735,24 @@ Let's create a `backport` function that we can invoke repeatedly for each backpo
 ```haskell
 let backport =
       { actions =
-                { backport =
-                    Some { branches = Some [ "1.0.x" ] }
-                , delete_head_branch =
-                    None {}
-                , label =
-                    Some
-                    { add =
-                        None (List Text)
-                    , remove =
-                        Some [ "status:backport-1.0" ]
-                    }
-                , merge =
-                    None
-                      { method :
-                          Optional < merge | rebase | squash >
-                      , rebase_fallback :
-                          Optional < merge | null | squash >
-                      , strict :
-                          Optional < dumb : Bool | smart >
-                      , strict_method :
-                          Optional < merge | rebase >
-                      }
+          { backport = Some { branches = Some [ "1.0.x" ] }
+          , delete_head_branch = None {}
+          , label =
+              Some
+                { add = None (List Text)
+                , remove = Some [ "status:backport-1.0" ]
                 }
-            , conditions =
-                [ "merged", "label=status:backport-1.0" ]
-            , name =
-                "backport patches to 1.0.x branch"
-            }
+          , merge =
+              None
+                { method : Optional < merge | rebase | squash >
+                , rebase_fallback : Optional < merge | null | squash >
+                , strict : Optional < dumb : Bool | smart >
+                , strict_method : Optional < merge | rebase >
+                }
+          }
+      , conditions = [ "merged", "label=status:backport-1.0" ]
+      , name = "backport patches to 1.0.x branch"
+      }
 
 in  ...
 ```
@@ -872,98 +761,69 @@ The only thing that changes between each backport rule is the version number, so
 
 ```haskell
 let backport =
-        \(version : Text)
+        λ(version : Text)
       → { actions =
-            { backport =
-                Some { branches = Some [ "${version}.x" ] }
-            , delete_head_branch =
-                None {}
+            { backport = Some { branches = Some [ "${version}.x" ] }
+            , delete_head_branch = None {}
             , label =
                 Some
-                { add =
-                    None (List Text)
-                , remove =
-                    Some [ "status:backport-${version}" ]
-                }
+                  { add = None (List Text)
+                  , remove = Some [ "status:backport-${version}" ]
+                  }
             , merge =
                 None
-                  { method :
-                      Optional < merge | rebase | squash >
-                  , rebase_fallback :
-                      Optional < merge | null | squash >
-                  , strict :
-                      Optional < dumb : Bool | smart >
-                  , strict_method :
-                      Optional < merge | rebase >
+                  { method : Optional < merge | rebase | squash >
+                  , rebase_fallback : Optional < merge | null | squash >
+                  , strict : Optional < dumb : Bool | smart >
+                  , strict_method : Optional < merge | rebase >
                   }
             }
-        , conditions =
-            [ "merged", "label=status:backport-${version}" ]
-        , name =
-            "backport patches to ${version}.x branch"
+        , conditions = [ "merged", "label=status:backport-${version}" ]
+        , name = "backport patches to ${version}.x branch"
         }
 
 in  { pull_request_rules =
         [ { actions =
-              { backport =
-                  None { branches : Optional (List Text) }
-              , delete_head_branch =
-                  None {}
+              { backport = None { branches : Optional (List Text) }
+              , delete_head_branch = None {}
               , label =
                   None
-                    { add :
-                        Optional (List Text)
-                    , remove :
-                        Optional (List Text)
+                    { add : Optional (List Text)
+                    , remove : Optional (List Text)
                     }
               , merge =
                   Some
-                  { method =
-                      Some < merge | rebase | squash >.squash
-                  , rebase_fallback =
-                      None < merge | null | squash >
-                  , strict =
-                      Some < dumb : Bool | smart >.smart
-                  , strict_method =
-                      None < merge | rebase >
-                  }
+                    { method = Some < merge | rebase | squash >.squash
+                    , rebase_fallback = None < merge | null | squash >
+                    , strict = Some < dumb : Bool | smart >.smart
+                    , strict_method = None < merge | rebase >
+                    }
               }
           , conditions =
               [ "status-success=continuous-integration/appveyor/pr"
               , "label=merge me"
               , "#approved-reviews-by>=1"
               ]
-          , name =
-              "Automatically merge pull requests"
+          , name = "Automatically merge pull requests"
           }
         , { actions =
-              { backport =
-                  None { branches : Optional (List Text) }
-              , delete_head_branch =
-                  Some {=}
+              { backport = None { branches : Optional (List Text) }
+              , delete_head_branch = Some {=}
               , label =
                   None
-                    { add :
-                        Optional (List Text)
-                    , remove :
-                        Optional (List Text)
+                    { add : Optional (List Text)
+                    , remove : Optional (List Text)
                     }
               , merge =
                   None
-                    { method :
-                        Optional < merge | rebase | squash >
-                    , rebase_fallback :
-                        Optional < merge | null | squash >
-                    , strict :
-                        Optional < dumb : Bool | smart >
-                    , strict_method :
-                        Optional < merge | rebase >
+                    { method : Optional < merge | rebase | squash >
+                    , rebase_fallback : Optional < merge | null | squash >
+                    , strict : Optional < dumb : Bool | smart >
+                    , strict_method : Optional < merge | rebase >
                     }
               }
-          , conditions =
-              [ "merged" ]
-          , name =
-              "Delete head branch after merge"
+          , conditions = [ "merged" ]
+          , name = "Delete head branch after merge"
           }
         , backport "1.0"
         , backport "1.1"
@@ -997,94 +857,65 @@ let Strict = < dumb : Bool | smart >
 let StrictMethod = < merge | rebase >
 
 let Merge =
-      { method :
-          Optional Method
-      , rebase_fallback :
-          Optional RebaseFallback
-      , strict :
-          Optional Strict
-      , strict_method :
-          Optional StrictMethod
+      { method : Optional Method
+      , rebase_fallback : Optional RebaseFallback
+      , strict : Optional Strict
+      , strict_method : Optional StrictMethod
       }
 
 let Actions =
-      { backport :
-          Optional Backport
-      , delete_head_branch :
-          Optional DeleteHeadBranch
-      , label :
-          Optional Label
-      , merge :
-          Optional Merge
+      { backport : Optional Backport
+      , delete_head_branch : Optional DeleteHeadBranch
+      , label : Optional Label
+      , merge : Optional Merge
       }
 
 let Rule = { name : Text, conditions : List Condition, actions : Actions }
 
 let backport =
-        \(version : Text)
+        λ(version : Text)
       → { actions =
-            { backport =
-                Some { branches = Some [ "${version}.x" ] }
-            , delete_head_branch =
-                None DeleteHeadBranch
+            { backport = Some { branches = Some [ "${version}.x" ] }
+            , delete_head_branch = None DeleteHeadBranch
             , label =
                 Some
-                { add =
-                    None (List Text)
-                , remove =
-                    Some [ "status:backport-${version}" ]
-                }
-            , merge =
-                None Merge
+                  { add = None (List Text)
+                  , remove = Some [ "status:backport-${version}" ]
+                  }
+            , merge = None Merge
             }
-        , conditions =
-            [ "merged", "label=status:backport-${version}" ]
-        , name =
-            "backport patches to ${version}.x branch"
+        , conditions = [ "merged", "label=status:backport-${version}" ]
+        , name = "backport patches to ${version}.x branch"
         }
 
 in  { pull_request_rules =
         [ { actions =
-              { backport =
-                  None Backport
-              , delete_head_branch =
-                  None DeleteHeadBranch
-              , label =
-                  None Label
+              { backport = None Backport
+              , delete_head_branch = None DeleteHeadBranch
+              , label = None Label
               , merge =
                   Some
-                  { method =
-                      Some Method.squash
-                  , rebase_fallback =
-                      None RebaseFallback
-                  , strict =
-                      Some Strict.smart
-                  , strict_method =
-                      None StrictMethod
-                  }
+                    { method = Some Method.squash
+                    , rebase_fallback = None RebaseFallback
+                    , strict = Some Strict.smart
+                    , strict_method = None StrictMethod
+                    }
               }
           , conditions =
               [ "status-success=continuous-integration/appveyor/pr"
               , "label=merge me"
               , "#approved-reviews-by>=1"
               ]
-          , name =
-              "Automatically merge pull requests"
+          , name = "Automatically merge pull requests"
           }
         , { actions =
-              { backport =
-                  None Backport
-              , delete_head_branch =
-                  Some {=}
-              , label =
-                  None Label
-              , merge =
-                  None Merge
+              { backport = None Backport
+              , delete_head_branch = Some {=}
+              , label = None Label
+              , merge = None Merge
               }
-          , conditions =
-              [ "merged" ]
-          , name =
-              "Delete head branch after merge"
+          , conditions = [ "merged" ]
+          , name = "Delete head branch after merge"
           }
         , backport "1.0"
         , backport "1.1"
