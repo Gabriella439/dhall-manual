@@ -721,27 +721,11 @@ $ yaml-to-dhall --ascii ./schema.dhall < ./.mergify.yml | tee mergify.dhall
       , conditions = [ "merged", "label=backport-1.0" ]
       , name = "backport patches to 1.0.x branch"
       }
-    , ...
-    ]
-}
-```
-
-The above snippet truncates the output since the generated Dhall configuration starts off large, but now that we have valid Dhall code we can begin using programming features to reduce repetition.
-
-## Simplification
-
-Let's create a `backport` function that we can invoke repeatedly for each backport rule.  We begin by lifting up an example backport rule to the beginning of our configuration file:
-
-```haskell
-let backport =
-      { actions =
-          { backport = Some { branches = Some [ "1.0.x" ] }
+    , { actions =
+          { backport = Some { branches = Some [ "1.1.x" ] }
           , delete_head_branch = None {}
           , label =
-              Some
-                { add = None (List Text)
-                , remove = Some [ "status:backport-1.0" ]
-                }
+              Some { add = None (List Text), remove = Some [ "backport-1.1" ] }
           , merge =
               None
                 { method : Optional < merge | rebase | squash >
@@ -750,197 +734,79 @@ let backport =
                 , strict_method : Optional < merge | rebase >
                 }
           }
-      , conditions = [ "merged", "label=status:backport-1.0" ]
-      , name = "backport patches to 1.0.x branch"
+      , conditions = [ "merged", "label=backport-1.1" ]
+      , name = "backport patches to 1.1.x branch"
       }
-
-in  ...
-```
-
-The only thing that changes between each backport rule is the version number, so we'll turn `backport` into a function of one argument (the `version` string):
-
-```haskell
-let backport =
-          \(version : Text)
-      ->  { actions =
-              { backport = Some { branches = Some [ "${version}.x" ] }
-              , delete_head_branch = None {}
-              , label =
-                  Some
-                    { add = None (List Text)
-                    , remove = Some [ "status:backport-${version}" ]
-                    }
-              , merge =
-                  None
-                    { method : Optional < merge | rebase | squash >
-                    , rebase_fallback : Optional < merge | null | squash >
-                    , strict : Optional < dumb : Bool | smart >
-                    , strict_method : Optional < merge | rebase >
-                    }
-              }
-          , conditions = [ "merged", "label=status:backport-${version}" ]
-          , name = "backport patches to ${version}.x branch"
+    , { actions =
+          { backport = Some { branches = Some [ "1.2.x" ] }
+          , delete_head_branch = None {}
+          , label =
+              Some { add = None (List Text), remove = Some [ "backport-1.2" ] }
+          , merge =
+              None
+                { method : Optional < merge | rebase | squash >
+                , rebase_fallback : Optional < merge | null | squash >
+                , strict : Optional < dumb : Bool | smart >
+                , strict_method : Optional < merge | rebase >
+                }
           }
-
-in  { pull_request_rules =
-        [ { actions =
-              { backport = None { branches : Optional (List Text) }
-              , delete_head_branch = None {}
-              , label =
-                  None
-                    { add : Optional (List Text)
-                    , remove : Optional (List Text)
-                    }
-              , merge =
-                  Some
-                    { method = Some < merge | rebase | squash >.squash
-                    , rebase_fallback = None < merge | null | squash >
-                    , strict = Some < dumb : Bool | smart >.smart
-                    , strict_method = None < merge | rebase >
-                    }
-              }
-          , conditions =
-              [ "status-success=continuous-integration/appveyor/pr"
-              , "label=merge me"
-              , "#approved-reviews-by>=1"
-              ]
-          , name = "Automatically merge pull requests"
-          }
-        , { actions =
-              { backport = None { branches : Optional (List Text) }
-              , delete_head_branch = Some {=}
-              , label =
-                  None
-                    { add : Optional (List Text)
-                    , remove : Optional (List Text)
-                    }
-              , merge =
-                  None
-                    { method : Optional < merge | rebase | squash >
-                    , rebase_fallback : Optional < merge | null | squash >
-                    , strict : Optional < dumb : Bool | smart >
-                    , strict_method : Optional < merge | rebase >
-                    }
-              }
-          , conditions = [ "merged" ]
-          , name = "Delete head branch after merge"
-          }
-        , backport "1.0"
-        , backport "1.1"
-        , backport "1.2"
-        , backport "1.3"
-        , backport "1.4"
-        , backport "1.5"
-        ]
-    }
-```
-
-... which we use above to simplify the last 6 backport-related rules.
-
-Finally, we can reuse the types we defined within our `./schema.dhall` file to simplify the configuration file further:
-
-```haskell
-let Condition = Text
-
-let Backport = { branches : Optional (List Text) }
-
-let DeleteHeadBranch = {}
-
-let Label = { add : Optional (List Text), remove : Optional (List Text) }
-
-let Method = < merge | squash | rebase >
-
-let RebaseFallback = < merge | squash | null >
-
-let Strict = < dumb : Bool | smart >
-
-let StrictMethod = < merge | rebase >
-
-let Merge =
-      { method : Optional Method
-      , rebase_fallback : Optional RebaseFallback
-      , strict : Optional Strict
-      , strict_method : Optional StrictMethod
+      , conditions = [ "merged", "label=backport-1.2" ]
+      , name = "backport patches to 1.2.x branch"
       }
-
-let Actions =
-      { backport : Optional Backport
-      , delete_head_branch : Optional DeleteHeadBranch
-      , label : Optional Label
-      , merge : Optional Merge
+    , { actions =
+          { backport = Some { branches = Some [ "1.3.x" ] }
+          , delete_head_branch = None {}
+          , label =
+              Some { add = None (List Text), remove = Some [ "backport-1.3" ] }
+          , merge =
+              None
+                { method : Optional < merge | rebase | squash >
+                , rebase_fallback : Optional < merge | null | squash >
+                , strict : Optional < dumb : Bool | smart >
+                , strict_method : Optional < merge | rebase >
+                }
+          }
+      , conditions = [ "merged", "label=backport-1.3" ]
+      , name = "backport patches to 1.3.x branch"
       }
-
-let Rule = { name : Text, conditions : List Condition, actions : Actions }
-
-let backport =
-          \(version : Text)
-      ->  { actions =
-              { backport = Some { branches = Some [ "${version}.x" ] }
-              , delete_head_branch = None DeleteHeadBranch
-              , label =
-                  Some
-                    { add = None (List Text)
-                    , remove = Some [ "status:backport-${version}" ]
-                    }
-              , merge = None Merge
-              }
-          , conditions = [ "merged", "label=status:backport-${version}" ]
-          , name = "backport patches to ${version}.x branch"
+    , { actions =
+          { backport = Some { branches = Some [ "1.4.x" ] }
+          , delete_head_branch = None {}
+          , label =
+              Some { add = None (List Text), remove = Some [ "backport-1.4" ] }
+          , merge =
+              None
+                { method : Optional < merge | rebase | squash >
+                , rebase_fallback : Optional < merge | null | squash >
+                , strict : Optional < dumb : Bool | smart >
+                , strict_method : Optional < merge | rebase >
+                }
           }
-
-in  { pull_request_rules =
-        [ { actions =
-              { backport = None Backport
-              , delete_head_branch = None DeleteHeadBranch
-              , label = None Label
-              , merge =
-                  Some
-                    { method = Some Method.squash
-                    , rebase_fallback = None RebaseFallback
-                    , strict = Some Strict.smart
-                    , strict_method = None StrictMethod
-                    }
-              }
-          , conditions =
-              [ "status-success=continuous-integration/appveyor/pr"
-              , "label=merge me"
-              , "#approved-reviews-by>=1"
-              ]
-          , name = "Automatically merge pull requests"
+      , conditions = [ "merged", "label=backport-1.4" ]
+      , name = "backport patches to 1.4.x branch"
+      }
+    , { actions =
+          { backport = Some { branches = Some [ "1.5.x" ] }
+          , delete_head_branch = None {}
+          , label =
+              Some { add = None (List Text), remove = Some [ "backport-1.5" ] }
+          , merge =
+              None
+                { method : Optional < merge | rebase | squash >
+                , rebase_fallback : Optional < merge | null | squash >
+                , strict : Optional < dumb : Bool | smart >
+                , strict_method : Optional < merge | rebase >
+                }
           }
-        , { actions =
-              { backport = None Backport
-              , delete_head_branch = Some {=}
-              , label = None Label
-              , merge = None Merge
-              }
-          , conditions = [ "merged" ]
-          , name = "Delete head branch after merge"
-          }
-        , backport "1.0"
-        , backport "1.1"
-        , backport "1.2"
-        , backport "1.3"
-        , backport "1.4"
-        ]
-    }
+      , conditions = [ "merged", "label=backport" ]
+      , name = "backport patches to 1.5.x branch"
+      }
+    ]
+}
 ```
 
-Finally, we can convert back to YAML to confirm that everything still works:
+## Next steps
 
-```bash
-$ dhall-to-yaml --file ./mergify.dhall
-```
-```yaml
-pull_request_rules:
-- actions:
-    merge:
-      strict: smart
-      method: squash
-  name: Automatically merge pull requests
-  conditions:
-  - status-success=continuous-integration/appveyor/pr
-  - label=merge me
-  - '#approved-reviews-by>=1'
-- ...
-```
+Now that we have a valid Dhall configuration file we can begin to refactor the file using programming features to reduce repetition.
+
+However, these refactors could mistakenly change the final result so the next chapter covers how to use Dhall's tooling to verify that refactors are safe.

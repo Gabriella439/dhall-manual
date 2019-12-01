@@ -1,4 +1,4 @@
-# How to support default values
+# How to simplify records with many default-valued fields
 
 This chapter describes the language's support for records with default-valued fields, using the Mergify configuration file from the end of the previous chapter as an illustrative example.
 
@@ -6,7 +6,7 @@ This chapter describes the language's support for records with default-valued fi
 
 Most configuration files let you omit options if you want to specify that you prefer their default values.
 
-For example, suppose we want to select the default merge method:
+For example, suppose we want to change our configuration file to select the default merge method:
 
 ```yaml
 pull_request_rules:
