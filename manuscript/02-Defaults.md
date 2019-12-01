@@ -124,7 +124,7 @@ in  (Point.default // { x = 1.0 }) : Point.Type
 { x = 1.0, y = 0.0 }
 ```
 
-The left argument to the operator (e.g. `Schema`) is a record of following shape:
+In the expression `Schema::fields`, the left argument to the operator (e.g. `Schema`) is a record of following shape:
 
 ```haskell
 { Type    = ... -- The type of the record to auto-complete
@@ -132,7 +132,7 @@ The left argument to the operator (e.g. `Schema`) is a record of following shape
 }
 ```
 
-... and the right argument to the operator (e.g. `fields`) is a record that overrides the `Schema.default` record and then checked against the `Schema.Type`.
+... and the right argument to the operator (e.g. `fields`) is a record that overrides the `Schema.default` record and is then checked against the `Schema.Type`.
 
 Carefully note that `Schema.default` need not specify default values for each field of `Schema.Type`.  For example, this is a valid "schema":
 
@@ -222,7 +222,7 @@ let Actions =
 ...
 ```
 
-Note that whenever we change a type into a "schema" we need to change all reference to that type to add a `.Type`.  For example, the type of the `backport` field changes from `Optional Backport` to `Optional Backport.Type`.  If you forget to do so then you will get an error message similar to this one:
+Note that whenever we change a type into a "schema" we need to change all references to that type to add a `.Type` to the end.  For example, the type of the `backport` field changes from `Optional Backport` to `Optional Backport.Type`.  If you forget to do so then you will get an error message similar to this one:
 
 ```
 Error: Wrong type of function argument
@@ -267,7 +267,7 @@ Here the `name` field is required because we do not specify a default value for 
 
 ## Example usage
 
-The following configuration illustrates the complete configuration containing both the schema definitions and their use with the record completion operator:
+The following configuration illustrates the complete example containing both the schema definitions and their use with the record completion operator:
 
 ```haskell
 let Condition = Text
@@ -309,7 +309,7 @@ let Merge =
 
 let Actions =
       { Type =
-          { backport : Optional Backport
+          { backport : Optional Backport.Type
           , delete_head_branch : Optional DeleteHeadBranch.Type
           , label : Optional Label.Type
           , merge : Optional Merge.Type
@@ -376,6 +376,6 @@ in  { pull_request_rules =
 
 ## Next steps
 
-The final record at the end of the file is now more concise, but as a result the preceding schema definitions now dwarf the actual program configuration.  Fortunately, these schema definitions are reusable across all Mergify configuration files, so we can factor them out into a separate package that we can share with others.  Or we can tuck them away in a separate file even if we don't plan to share them, just so that we don't need to look at them.
+The final record at the end of the file is now more concise, but as a result the preceding schema definitions now dwarf the actual program configuration.  Fortunately, these schema definitions are reusable across all Mergify configuration files, so we can factor them out into a separate package that we can share with others.  Or we can tuck them away in a separate file even if we don't plan to share them, just so that we don't have to stare at them.
 
-The next chapter covers how to package reusable utilities in an opinionated project layout.
+The next chapter covers how to factor out definitions like these into separate files and organizing things to follow an opinionated project layout.
