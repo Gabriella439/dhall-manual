@@ -369,6 +369,7 @@ in  { pull_request_rules =
         , backport "1.2"
         , backport "1.3"
         , backport "1.4"
+        , backport "1.5"
         ]
     }
 ```
@@ -395,37 +396,12 @@ pull_request_rules:
 ```
 
 ... but we can more easily recompute the semantic integrity check and verify
-that the hash remains the same:
+that the digest remains the same:
 
 ```bash
 $ dhall hash --file ./mergify.dhall 
 sha256:40e5e1ea3553a14ae667e292506f70b74f02501b86cf496753f8f059fd939c2f
 ```
-
-In fact, we could automate this check every time we generated YAML by including the hash in the command line, like this:
-
-```bash
-$ dhall-to-yaml <<< './mergify.dhall sha256:40e5e1ea3553a14ae667e292506f70b74f02501b86cf496753f8f059fd939c2f'
-```
-```yaml
-pull_request_rules:
-- actions:
-    merge:
-      strict: smart
-      method: squash
-  name: Automatically merge pull requests
-  conditions:
-  - status-success=continuous-integration/appveyor/pr
-  - label=merge me
-  - '#approved-reviews-by>=1'
-- ...
-```
-
-Note that the language currently only supports verifying integrity checks surrounding imported expressions (such as `./mergify.dhall`), but does not yet support verifying integrity checks protecting arbitrary expressions.  The latter feature would allow us to embed the integrity check within `./mergify.dhall`.
-
-If you are interested in the latter feature you can find a draft language proposal to support generalized integrity checks here:
-
-* [Integrity protect any expression](https://github.com/dhall-lang/dhall-lang/pull/668)
 
 ## Next steps
 
