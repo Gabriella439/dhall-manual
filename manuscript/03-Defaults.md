@@ -376,6 +376,6 @@ in  { pull_request_rules =
 
 ## Next steps
 
-The final record at the end of the file is now more concise, but as a result the preceding schema definitions now dwarf the actual program configuration.  Fortunately, these schema definitions are reusable across all Mergify configuration files, so we can factor them out into a separate package that we can share with others.  Or we can tuck them away in a separate file even if we don't plan to share them, just so that we don't have to stare at them.
+The final record at the end of the file is now more concise, but as a result the preceding schema definitions now dwarf the actual program configuration.  Fortunately, these schema definitions are reusable across all Mergify configuration files, so we can factor them out into a separate package that we can share with others.  Or we can tuck them away in a separate file even if we don't plan to share them, so that we can focus on the program configuration.
 
 The next chapter covers how to factor out definitions like these into separate files and organizing things to follow an opinionated project layout.
