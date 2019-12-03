@@ -35,12 +35,12 @@ pull_request_rules:
     actions:
       merge:
         strict: smart
-        # No more `merge` field
+        # No more `method` field
 ```
 
-Configuration files should preserve the user's intent and if we intend to select the default then we should omit the field.  Omission ensures that we continue to track any changes to the default value.
+Configuration files should preserve the user's intent and if we intend to select the default then we should omit the field.  Omission ensures that we track possible future changes to the default value.
 
-We can achieve a similar result by using a record completion operator, denoted by two colons: `::`.  This operator extends a record with default values for any missing fields so that we only need to specify non-default values, like this:
+We can achieve a similar result by using the record completion operator, denoted by two colons: `::`.  This operator extends a record with default values for any missing fields so that we only need to specify non-default values, like this:
 
 ```haskell
 ...
@@ -77,7 +77,7 @@ in  { pull_request_rules =
     }
 ```
 
-However, the record completion operator does not guess what the default values should be.  We must specify the defaults for each record type before we can use this operator.
+However, the record completion operator does not guess what the default values should be.  We must specify the defaults for each record type before we can begin to use this operator.
 
 ## Record completion
 
@@ -93,6 +93,8 @@ Schema::fields
 ```haskell
 (Schema.default // fields) : Schema.Type
 ```
+
+... where `//` is the record override operator.
 
 For example, this expression:
 
@@ -134,7 +136,7 @@ In the expression `Schema::fields`, the left argument to the operator (e.g. `Sch
 
 ... and the right argument to the operator (e.g. `fields`) is a record that overrides the `Schema.default` record and is then checked against the `Schema.Type`.
 
-Carefully note that `Schema.default` need not specify default values for each field of `Schema.Type`.  For example, this is a valid "schema":
+Carefully note that `Schema.default` need not specify default values for each field of `Schema.Type`.  For example, this is a valid schema:
 
 ```haskell
 let Person =
@@ -165,6 +167,8 @@ Error: Expression doesn't match annotation
 
 4│     Person::{ alive = False }
 ```
+
+... because we omitted the required `name` field.
 
 ## Default `Optional` fields
 
@@ -222,7 +226,7 @@ let Actions =
 ...
 ```
 
-Note that whenever we change a type into a "schema" we need to change all references to that type to add a `.Type` to the end.  For example, the type of the `backport` field changes from `Optional Backport` to `Optional Backport.Type`.  If you forget to do so then you will get an error message similar to this one:
+Note that whenever we change a type into a schema we need to change all references to that type to add a `.Type` to the end.  For example, the type of the `backport` field changes from `Optional Backport` to `Optional Backport.Type`.  If you forget to do so then you will get an error message similar to this one:
 
 ```
 Error: Wrong type of function argument
@@ -374,8 +378,48 @@ in  { pull_request_rules =
     }
 ```
 
+... and now we can omit the `Merge` `method` by deleting this line:
+
+```haskell
+...
+
+in  { pull_request_rules =
+        [ Rule::{
+          , actions =
+              Actions::{
+              , merge =
+                  Some
+                    Merge::{
+                    , method = Some Method.squash
+                    -- , strict = Some Strict.smart
+                    }
+              }
+          , conditions =
+              [ "status-success=continuous-integration/appveyor/pr"
+              , "label=merge me"
+              , "#approved-reviews-by>=1"
+              ]
+          , name = "Automatically merge pull requests"
+          }
+        , Rule::{
+          , actions = Actions::{ delete_head_branch = Some {=} }
+          , conditions = [ "merged" ]
+          , name = "Delete head branch after merge"
+          }
+        , backport "1.0"
+        , backport "1.1"
+        , backport "1.2"
+        , backport "1.3"
+        , backport "1.4"
+        ]
+    }
+```
+
+... and the generated YAML configuration will then select the default `Merge`
+`method`.
+
 ## Next steps
 
 The final record at the end of the file is now more concise, but as a result the preceding schema definitions now dwarf the actual program configuration.  Fortunately, these schema definitions are reusable across all Mergify configuration files, so we can factor them out into a separate package that we can share with others.  Or we can tuck them away in a separate file even if we don't plan to share them, so that we can focus on the program configuration.
 
-The next chapter covers how to factor out definitions like these into separate files and organizing things to follow an opinionated project layout.
+The next chapter covers how to factor out definitions like these into separate files and organize them to follow an opinionated project layout.
