@@ -151,12 +151,12 @@ Before starting our refactor we can create a digest (a.k.a. a checksum) of the r
 
 ```bash
 $ dhall hash --file ./mergify.dhall 
-sha256:40e5e1ea3553a14ae667e292506f70b74f02501b86cf496753f8f059fd939c2f
+sha256:c231ab5f3e5694cd8cf8e467255a8f72f91b6d5ff83d90ebbeba4b7dfbbb7df6
 ```
 
 If our refactor does not change the result then the digest should remain the same.
 
-This digest is known as a "semantic integrity check" or a "semantic hash" for short.  Unlike a traditional digest this is a hash of a CBOR encoding of the syntax tree in a canonical normal form.
+This digest is known as a "semantic integrity check" or a "semantic hash" for short.  This is not a textual hash, but is instead a hash of the CBOR encoding of the syntax tree in a canonical normal form.
 
 In other words, you could obtain the same hash by chaining the following steps:
 
@@ -167,11 +167,17 @@ $ dhall --alpha --file ./mergify.dhall | dhall encode | shasum --algorithm 256 -
 
 ... where:
 
-* `dhall --alpha` reduces an expression to a canonical normal form
+* `dhall --alpha` reduces an expression to a canonical normal form, free of imports and also free of indirection
 * `dhall encode` encodes the expression according to a [standard CBOR representation](https://github.com/dhall-lang/dhall-lang/blob/master/standard/binary.md)
 * `shasum --algorithm 256 --binary` hashes the bytes of the CBOR representation to give us the final digest
 
-With this digest in hand we can safely begin to refactor.
+After recording this digest we can safely begin to refactor.
+
+If you have the `watch` command installed, you can track the digest live as you refactor by running:
+
+```
+$ watch 'dhall hash --file ./mergify.dhall'
+```
 
 ## Simplification
 
@@ -187,7 +193,7 @@ let backport =
           , label =
               Some
                 { add = None (List Text)
-                , remove = Some [ "status:backport-1.0" ]
+                , remove = Some [ "backport-1.0" ]
                 }
           , merge =
               None
@@ -197,7 +203,7 @@ let backport =
                 , strict_method : Optional < merge | rebase >
                 }
           }
-      , conditions = [ "merged", "label=status:backport-1.0" ]
+      , conditions = [ "merged", "label=backport-1.0" ]
       , name = "backport patches to 1.0.x branch"
       }
 
@@ -215,7 +221,7 @@ let backport =
               , label =
                   Some
                     { add = None (List Text)
-                    , remove = Some [ "status:backport-${version}" ]
+                    , remove = Some [ "backport-${version}" ]
                     }
               , merge =
                   None
@@ -225,7 +231,7 @@ let backport =
                     , strict_method : Optional < merge | rebase >
                     }
               }
-          , conditions = [ "merged", "label=status:backport-${version}" ]
+          , conditions = [ "merged", "label=backport-${version}" ]
           , name = "backport patches to ${version}.x branch"
           }
 
@@ -327,11 +333,11 @@ let backport =
               , label =
                   Some
                     { add = None (List Text)
-                    , remove = Some [ "status:backport-${version}" ]
+                    , remove = Some [ "backport-${version}" ]
                     }
               , merge = None Merge
               }
-          , conditions = [ "merged", "label=status:backport-${version}" ]
+          , conditions = [ "merged", "label=backport-${version}" ]
           , name = "backport patches to ${version}.x branch"
           }
 
@@ -400,8 +406,78 @@ that the digest remains the same:
 
 ```bash
 $ dhall hash --file ./mergify.dhall 
-sha256:40e5e1ea3553a14ae667e292506f70b74f02501b86cf496753f8f059fd939c2f
+sha256:ccfbb3688d22cfd0e6506c51e760427ea2925f251b1759654cc8d130db5b9b96
 ```
+
+Wait a second...  This is not the same digest as before!
+
+How can we tell where things went wrong?
+
+## Comparing two expressions
+
+If we save our original configuration file to `./old.dhall` and our new
+configuration file to `./new.dhall` then we can compare the two using the
+`dhall diff` command, like this:
+
+```bash
+$ dhall diff './old.dhall' './new.dhall'
+```
+```haskell
+{ pull_request_rules = [ …
+                       , - { actions =
+                               { backport = Some { branches = Some [ "1.5.x" ] }
+                               , delete_head_branch = None {}
+                               , label =
+                                   Some
+                                     { add = None (List Text)
+                                     , remove = Some [ "backport-1.5" ]
+                                     }
+                               , merge =
+                                   None
+                                     { method :
+                                         Optional < merge | rebase | squash >
+                                     , rebase_fallback :
+                                         Optional < merge | null | squash >
+                                     , strict : Optional < dumb : Bool | smart >
+                                     , strict_method :
+                                         Optional < merge | rebase >
+                                     }
+                               }
+                           , conditions = [ "merged", "label=backport" ]
+                           , name = "backport patches to 1.5.x branch"
+                           }
+                       , + { actions =
+                               { backport = Some { branches = Some [ "1.5.x" ] }
+                               , delete_head_branch = None {}
+                               , label =
+                                   Some
+                                     { add = None (List Text)
+                                     , remove = Some [ "backport-1.5" ]
+                                     }
+                               , merge =
+                                   None
+                                     { method :
+                                         Optional < merge | rebase | squash >
+                                     , rebase_fallback :
+                                         Optional < merge | null | squash >
+                                     , strict : Optional < dumb : Bool | smart >
+                                     , strict_method :
+                                         Optional < merge | rebase >
+                                     }
+                               }
+                           , conditions = [ "merged", "label=backport-1.5" ]
+                           , name = "backport patches to 1.5.x branch"
+                           }
+                       ]
+
+}
+```
+
+This is a "semantic diff" meaning that the diff zooms in on the relevant difference also includes a "trail of breadcrumbs" showing you the context of the two subexpressions that differ.
+
+The above diff highlights that the final `Rule` inside the `pull_request_rules` `List` differs.  Specifically, the label that the backport rule expects was wrong in the original configuration; the label should have been `backport-1.5` but somebody copying-and-pasting configuration sections mistakenly edited the label to be `backport`.
+
+This illustrates the importance of DRY ("Don't Repeat Yourself"): removing repetition often also removes bugs.
 
 ## Next steps
 
