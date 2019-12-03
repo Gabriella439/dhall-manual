@@ -1,15 +1,12 @@
 * For application authors
     * Running example: integrating Dhall into an example twelve-factor app
     * How to install the tooling
-    * Generally useful tricks
-        * i.e. using the `watch` command for live output
+        * How to obtain various `dhall*` executables
+    * Generally useful tricks (?)
     * Is Dhall appropriate for a given project or use case?
-    * How to obtain various `dhall*` executables
     * Instructions on how to configure a new project using Dhall
         * Language bindings
         * `dhall-to-{json,yaml,text,bash}`
-    * Instructions on how to migrate an existing project to Dhall
-        * How to use `{json-yaml}-to-dhall`
     * How to edit Dhall code with IDE support?
     * How to check a Dhall configuration file against a schema
       (i.e. type annotation)
@@ -21,12 +18,12 @@
         * If not using semantic integrity checks, discuss how Dhall fits in with
           filesystem hierarchy standard
     * How to secure a Dhall project
-        * i.e. threat model
+        * e.g. threat model
     * How to use and navigate the Prelude
     * How to organize a project (as an application author)
     * How to share a Dhall configuration file across multiple languages and file
       formats
-    * Common idioms (i.e. defaults record + `//`)
+    * Common idioms (e.g. `import sha256:… ? import`)
     * How to detect changes in a package across releases (i.e. `dhall diff`)
     * How to depend directly on a binary artifact (i.e. the cache) instead of
       source
@@ -35,7 +32,6 @@
       service call or multiplexing data)
     * Translating traditional terms (e.g. "schema"/"template") into Dhall
       terminology (i.e. "type"/"function")
-    * Use `dhall hash` to verify that a refactor was behavior-preserving
 * For package authors
     * Running example: Packing Dhall bindings to Mergify configuration
     * How to create a systematic binding to widely used configuration
