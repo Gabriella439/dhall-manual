@@ -424,58 +424,20 @@ $ dhall diff './old.dhall' './new.dhall'
 ```
 ```haskell
 { pull_request_rules = [ …
-                       , - { actions =
-                               { backport = Some { branches = Some [ "1.5.x" ] }
-                               , delete_head_branch = None {}
-                               , label =
-                                   Some
-                                     { add = None (List Text)
-                                     , remove = Some [ "backport-1.5" ]
-                                     }
-                               , merge =
-                                   None
-                                     { method :
-                                         Optional < merge | rebase | squash >
-                                     , rebase_fallback :
-                                         Optional < merge | null | squash >
-                                     , strict : Optional < dumb : Bool | smart >
-                                     , strict_method :
-                                         Optional < merge | rebase >
-                                     }
-                               }
-                           , conditions = [ "merged", "label=backport" ]
-                           , name = "backport patches to 1.5.x branch"
-                           }
-                       , + { actions =
-                               { backport = Some { branches = Some [ "1.5.x" ] }
-                               , delete_head_branch = None {}
-                               , label =
-                                   Some
-                                     { add = None (List Text)
-                                     , remove = Some [ "backport-1.5" ]
-                                     }
-                               , merge =
-                                   None
-                                     { method :
-                                         Optional < merge | rebase | squash >
-                                     , rebase_fallback :
-                                         Optional < merge | null | squash >
-                                     , strict : Optional < dumb : Bool | smart >
-                                     , strict_method :
-                                         Optional < merge | rebase >
-                                     }
-                               }
-                           , conditions = [ "merged", "label=backport-1.5" ]
-                           , name = "backport patches to 1.5.x branch"
-                           }
+                       , { conditions = [ …
+                                        , "label=backport-1.5"
+                                        ]
+
+                         , …
+                         }
                        ]
 
 }
 ```
 
-This is a "semantic diff" meaning that the diff zooms in on the relevant difference also includes a "trail of breadcrumbs" showing you the context of the two subexpressions that differ.
+This is a "semantic diff" meaning that the diff focuses in on only the relevant difference and also includes a "trail of breadcrumbs" showing you the context of the two subexpressions that differ.
 
-The above diff highlights that the final `Rule` inside the `pull_request_rules` `List` differs.  Specifically, the label that the backport rule expects was wrong in the original configuration; the label should have been `backport-1.5` but somebody copying-and-pasting configuration sections mistakenly edited the label to be `backport`.
+The above diff highlights that the final `Rule` inside the `pull_request_rules` `List` differs.  Specifically, the label that the backport rule expects was wrong in the original configuration; the label should have been `backport-1.5` but somebody copying-and-pasting configuration sections mistakenly edited the label to be `backport`.  If you run the diff command yourself you will notice that the `dhall diff` command highlights the `-1.5` suffix in green to further narrow down the difference.
 
 This illustrates the importance of DRY ("Don't Repeat Yourself"): removing repetition often also removes bugs.
 
