@@ -554,45 +554,45 @@ let JSON/Type = https://prelude.dhall-lang.org/JSON/Type
 
 let Condition = Text
 
-{-  The `backport` action takes the following parameter:
+let {-  The `backport` action takes the following parameter:
 
-    | Key name   | Value type      | Default | Value Description |
-    |------------|-----------------|---------|-------------------|
-    | `branches` | array of string | ...     | ...               |
--}
-let Backport = { branches : Optional (List Text) }
+        | Key name   | Value type      | Default | Value Description |
+        |------------|-----------------|---------|-------------------|
+        | `branches` | array of string | ...     | ...               |
+    -}
+    Backport = { branches : Optional (List Text) }
 
---  This action takes no configuration options
-let DeleteHeadBranch = {}
+let -- This action takes no configuration options
+    DeleteHeadBranch = {}
 
-{-  | Key name | Value type      | Default | Value Description |
-    |----------|-----------------|---------|-------------------|
-    | `add`    | array of string | ...     | ...               |
-    | `remove` | array of string | ...     | ...               |
--}
-let Label = { add : Optional (List Text), remove : Optional (List Text) }
+let {-  | Key name | Value type      | Default | Value Description |
+        |----------|-----------------|---------|-------------------|
+        | `add`    | array of string | ...     | ...               |
+        | `remove` | array of string | ...     | ...               |
+    -}
+    Label = { add : Optional (List Text), remove : Optional (List Text) }
 
-{-  | Key name          | Value type       | Default | Value Description |
-    |-------------------|------------------|---------|-------------------|
-    | `method`          | string           | ...     | ...               |
-    |                   |                  |         | Possible values   |
-    |                   |                  |         | are `merge`,      |
-    |                   |                  |         | `squash` or,      |
-    |                   |                  |         | `rebase`          |
-    |                   |                  |         |                   |
-    | `rebase_fallback` | string           | ...     | ...               |
-    |                   |                  |         | Possible values   |
-    |                   |                  |         | are `merge`,      |
-    |                   |                  |         | `squash`, `null`. |
-    |                   |                  |         |                   |
-    | `strict`          | boolean or smart | ...     | ...               |
-    |                   |                  |         |                   |
-    | `strict_method`   | string           | ...     | ...               |
-    |                   |                  |         | Possible values   |
-    |                   |                  |         | are `merge` or    |
-    |                   |                  |         | `rebase`          |
--}
-let Method = < merge | squash | rebase >
+let {-  | Key name          | Value type       | Default | Value Description |
+        |-------------------|------------------|---------|-------------------|
+        | `method`          | string           | ...     | ...               |
+        |                   |                  |         | Possible values   |
+        |                   |                  |         | are `merge`,      |
+        |                   |                  |         | `squash` or,      |
+        |                   |                  |         | `rebase`          |
+        |                   |                  |         |                   |
+        | `rebase_fallback` | string           | ...     | ...               |
+        |                   |                  |         | Possible values   |
+        |                   |                  |         | are `merge`,      |
+        |                   |                  |         | `squash`, `null`. |
+        |                   |                  |         |                   |
+        | `strict`          | boolean or smart | ...     | ...               |
+        |                   |                  |         |                   |
+        | `strict_method`   | string           | ...     | ...               |
+        |                   |                  |         | Possible values   |
+        |                   |                  |         | are `merge` or    |
+        |                   |                  |         | `rebase`          |
+    -}
+    Method = < merge | squash | rebase >
 
 let RebaseFallback = < merge | squash | null >
 
@@ -607,7 +607,8 @@ let Merge =
       , strict_method : Optional StrictMethod
       }
 
-let Action = JSON/Type
+let -- We have not yet updated this to use our new types
+    Action = JSON/Type
 
 let Rule =
       { name : Text
@@ -646,7 +647,8 @@ let Merge =
       , strict_method : Optional StrictMethod
       }
 
-let Actions =
+let -- No more arbitrary YAML!
+    Actions =
       { backport : Optional Backport
       , delete_head_branch : Optional DeleteHeadBranch
       , label : Optional Label
