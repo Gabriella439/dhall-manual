@@ -1,3 +1,9 @@
+* Upcoming chapters
+    * IDE support (motivated by effectively navigating the newly-granular
+      project layout)
+    * Prelude (motivated by using `Prelude.List.generate` to simplify
+      auto-generating backport-related rules)
+
 * For application authors
     * Running example: integrating Dhall into an example twelve-factor app
     * How to install the tooling
