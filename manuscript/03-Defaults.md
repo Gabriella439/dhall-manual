@@ -73,6 +73,7 @@ in  { pull_request_rules =
         , backport "1.2"
         , backport "1.3"
         , backport "1.4"
+        , backport "1.5"
         ]
     }
 ```
@@ -374,6 +375,7 @@ in  { pull_request_rules =
         , backport "1.2"
         , backport "1.3"
         , backport "1.4"
+        , backport "1.5"
         ]
     }
 ```
@@ -411,6 +413,7 @@ in  { pull_request_rules =
         , backport "1.2"
         , backport "1.3"
         , backport "1.4"
+        , backport "1.5"
         ]
     }
 ```
