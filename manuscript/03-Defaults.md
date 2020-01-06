@@ -341,9 +341,9 @@ let backport =
               Actions::{
               , backport = Some Backport::{ branches = Some [ "${version}.x" ] }
               , label =
-                  Some Label::{ remove = Some [ "status:backport-${version}" ] }
+                  Some Label::{ remove = Some [ "backport-${version}" ] }
               }
-          , conditions = [ "merged", "label=status:backport-${version}" ]
+          , conditions = [ "merged", "label=backport-${version}" ]
           , name = "backport patches to ${version}.x branch"
           }
 
