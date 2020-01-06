@@ -162,7 +162,7 @@ In other words, you could obtain the same hash by chaining the following steps:
 
 ```bash
 $ dhall --alpha --file ./mergify.dhall | dhall encode | shasum --algorithm 256 --binary
-40e5e1ea3553a14ae667e292506f70b74f02501b86cf496753f8f059fd939c2f  *-
+c231ab5f3e5694cd8cf8e467255a8f72f91b6d5ff83d90ebbeba4b7dfbbb7df6 *-
 ```
 
 ... where:
