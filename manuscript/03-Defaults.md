@@ -40,7 +40,7 @@ pull_request_rules:
 
 Configuration files should preserve the user's intent and if we intend to select the default then we should omit the field.  Omission ensures that we track possible future changes to the default value.
 
-We can achieve a similar result by using the record completion operator, denoted by two colons: `::`.  This operator extends a record with default values for any missing fields so that we only need to specify non-default values, like this:
+We can achieve a similar result by using the record completion operator, denoted by two colons: `::`.  This operator extends a record with default values for any missing fields so that we only need to specify non-default values.  You can preview how this operator works using the following excerpt from this chapter's result:
 
 ```haskell
 ...
@@ -78,7 +78,7 @@ in  { pull_request_rules =
     }
 ```
 
-However, the record completion operator does not guess what the default values should be.  We must specify the defaults for each record type before we can begin to use this operator.
+The record completion operator does not guess what the default values should be.  We must specify the defaults for each record type before we can begin to use this operator.
 
 ## Record completion
 
@@ -392,8 +392,8 @@ in  { pull_request_rules =
               , merge =
                   Some
                     Merge::{
-                    , method = Some Method.squash
-                    -- , strict = Some Strict.smart
+                    -- , method = Some Method.squash
+                    , strict = Some Strict.smart
                     }
               }
           , conditions =
