@@ -9,139 +9,138 @@ In this chapter we will use functions to reduce repetition and also verify that 
 -- ./mergify.dhall
 
 { pull_request_rules =
-    [ { actions =
-          { backport = None { branches : Optional (List Text) }
-          , delete_head_branch = None {}
-          , label =
-              None { add : Optional (List Text), remove : Optional (List Text) }
-          , merge =
-              Some
-                { method = Some < merge | rebase | squash >.squash
-                , rebase_fallback = None < merge | null | squash >
-                , strict = Some < dumb : Bool | smart >.smart
-                , strict_method = None < merge | rebase >
-                }
-          }
-      , conditions =
-          [ "status-success=continuous-integration/appveyor/pr"
-          , "label=merge me"
-          , "#approved-reviews-by>=1"
-          ]
-      , name = "Automatically merge pull requests"
-      }
-    , { actions =
-          { backport = None { branches : Optional (List Text) }
-          , delete_head_branch = Some {=}
-          , label =
-              None { add : Optional (List Text), remove : Optional (List Text) }
-          , merge =
-              None
-                { method : Optional < merge | rebase | squash >
-                , rebase_fallback : Optional < merge | null | squash >
-                , strict : Optional < dumb : Bool | smart >
-                , strict_method : Optional < merge | rebase >
-                }
-          }
-      , conditions = [ "merged" ]
-      , name = "Delete head branch after merge"
-      }
-    , { actions =
-          { backport = Some { branches = Some [ "1.0.x" ] }
-          , delete_head_branch = None {}
-          , label =
-              Some { add = None (List Text), remove = Some [ "backport-1.0" ] }
-          , merge =
-              None
-                { method : Optional < merge | rebase | squash >
-                , rebase_fallback : Optional < merge | null | squash >
-                , strict : Optional < dumb : Bool | smart >
-                , strict_method : Optional < merge | rebase >
-                }
-          }
-      , conditions = [ "merged", "label=backport-1.0" ]
-      , name = "backport patches to 1.0.x branch"
-      }
-    , { actions =
-          { backport = Some { branches = Some [ "1.1.x" ] }
-          , delete_head_branch = None {}
-          , label =
-              Some { add = None (List Text), remove = Some [ "backport-1.1" ] }
-          , merge =
-              None
-                { method : Optional < merge | rebase | squash >
-                , rebase_fallback : Optional < merge | null | squash >
-                , strict : Optional < dumb : Bool | smart >
-                , strict_method : Optional < merge | rebase >
-                }
-          }
-      , conditions = [ "merged", "label=backport-1.1" ]
-      , name = "backport patches to 1.1.x branch"
-      }
-    , { actions =
-          { backport = Some { branches = Some [ "1.2.x" ] }
-          , delete_head_branch = None {}
-          , label =
-              Some { add = None (List Text), remove = Some [ "backport-1.2" ] }
-          , merge =
-              None
-                { method : Optional < merge | rebase | squash >
-                , rebase_fallback : Optional < merge | null | squash >
-                , strict : Optional < dumb : Bool | smart >
-                , strict_method : Optional < merge | rebase >
-                }
-          }
-      , conditions = [ "merged", "label=backport-1.2" ]
-      , name = "backport patches to 1.2.x branch"
-      }
-    , { actions =
-          { backport = Some { branches = Some [ "1.3.x" ] }
-          , delete_head_branch = None {}
-          , label =
-              Some { add = None (List Text), remove = Some [ "backport-1.3" ] }
-          , merge =
-              None
-                { method : Optional < merge | rebase | squash >
-                , rebase_fallback : Optional < merge | null | squash >
-                , strict : Optional < dumb : Bool | smart >
-                , strict_method : Optional < merge | rebase >
-                }
-          }
-      , conditions = [ "merged", "label=backport-1.3" ]
-      , name = "backport patches to 1.3.x branch"
-      }
-    , { actions =
-          { backport = Some { branches = Some [ "1.4.x" ] }
-          , delete_head_branch = None {}
-          , label =
-              Some { add = None (List Text), remove = Some [ "backport-1.4" ] }
-          , merge =
-              None
-                { method : Optional < merge | rebase | squash >
-                , rebase_fallback : Optional < merge | null | squash >
-                , strict : Optional < dumb : Bool | smart >
-                , strict_method : Optional < merge | rebase >
-                }
-          }
-      , conditions = [ "merged", "label=backport-1.4" ]
-      , name = "backport patches to 1.4.x branch"
-      }
-    , { actions =
-          { backport = Some { branches = Some [ "1.5.x" ] }
-          , delete_head_branch = None {}
-          , label =
-              Some { add = None (List Text), remove = Some [ "backport-1.5" ] }
-          , merge =
-              None
-                { method : Optional < merge | rebase | squash >
-                , rebase_fallback : Optional < merge | null | squash >
-                , strict : Optional < dumb : Bool | smart >
-                , strict_method : Optional < merge | rebase >
-                }
-          }
-      , conditions = [ "merged", "label=backport" ]
-      , name = "backport patches to 1.5.x branch"
-      }
-    ]
+  [ { actions =
+        { backport = None { branches : Optional (List Text) }
+        , delete_head_branch = None {}
+        , label =
+            None { add : Optional (List Text), remove : Optional (List Text) }
+        , merge = Some
+            { method = Some < merge | rebase | squash >.squash
+            , rebase_fallback = None < merge | null | squash >
+            , strict = Some < dumb : Bool | smart >.smart
+            , strict_method = None < merge | rebase >
+            }
+        }
+    , conditions =
+      [ "status-success=continuous-integration/appveyor/pr"
+      , "label=merge me"
+      , "#approved-reviews-by>=1"
+      ]
+    , name = "Automatically merge pull requests"
+    }
+  , { actions =
+        { backport = None { branches : Optional (List Text) }
+        , delete_head_branch = Some {=}
+        , label =
+            None { add : Optional (List Text), remove : Optional (List Text) }
+        , merge =
+            None
+              { method : Optional < merge | rebase | squash >
+              , rebase_fallback : Optional < merge | null | squash >
+              , strict : Optional < dumb : Bool | smart >
+              , strict_method : Optional < merge | rebase >
+              }
+        }
+    , conditions = [ "merged" ]
+    , name = "Delete head branch after merge"
+    }
+  , { actions =
+        { backport = Some { branches = Some [ "1.0.x" ] }
+        , delete_head_branch = None {}
+        , label = Some
+            { add = None (List Text), remove = Some [ "backport-1.0" ] }
+        , merge =
+            None
+              { method : Optional < merge | rebase | squash >
+              , rebase_fallback : Optional < merge | null | squash >
+              , strict : Optional < dumb : Bool | smart >
+              , strict_method : Optional < merge | rebase >
+              }
+        }
+    , conditions = [ "merged", "label=backport-1.0" ]
+    , name = "backport patches to 1.0.x branch"
+    }
+  , { actions =
+        { backport = Some { branches = Some [ "1.1.x" ] }
+        , delete_head_branch = None {}
+        , label = Some
+            { add = None (List Text), remove = Some [ "backport-1.1" ] }
+        , merge =
+            None
+              { method : Optional < merge | rebase | squash >
+              , rebase_fallback : Optional < merge | null | squash >
+              , strict : Optional < dumb : Bool | smart >
+              , strict_method : Optional < merge | rebase >
+              }
+        }
+    , conditions = [ "merged", "label=backport-1.1" ]
+    , name = "backport patches to 1.1.x branch"
+    }
+  , { actions =
+        { backport = Some { branches = Some [ "1.2.x" ] }
+        , delete_head_branch = None {}
+        , label = Some
+            { add = None (List Text), remove = Some [ "backport-1.2" ] }
+        , merge =
+            None
+              { method : Optional < merge | rebase | squash >
+              , rebase_fallback : Optional < merge | null | squash >
+              , strict : Optional < dumb : Bool | smart >
+              , strict_method : Optional < merge | rebase >
+              }
+        }
+    , conditions = [ "merged", "label=backport-1.2" ]
+    , name = "backport patches to 1.2.x branch"
+    }
+  , { actions =
+        { backport = Some { branches = Some [ "1.3.x" ] }
+        , delete_head_branch = None {}
+        , label = Some
+            { add = None (List Text), remove = Some [ "backport-1.3" ] }
+        , merge =
+            None
+              { method : Optional < merge | rebase | squash >
+              , rebase_fallback : Optional < merge | null | squash >
+              , strict : Optional < dumb : Bool | smart >
+              , strict_method : Optional < merge | rebase >
+              }
+        }
+    , conditions = [ "merged", "label=backport-1.3" ]
+    , name = "backport patches to 1.3.x branch"
+    }
+  , { actions =
+        { backport = Some { branches = Some [ "1.4.x" ] }
+        , delete_head_branch = None {}
+        , label = Some
+            { add = None (List Text), remove = Some [ "backport-1.4" ] }
+        , merge =
+            None
+              { method : Optional < merge | rebase | squash >
+              , rebase_fallback : Optional < merge | null | squash >
+              , strict : Optional < dumb : Bool | smart >
+              , strict_method : Optional < merge | rebase >
+              }
+        }
+    , conditions = [ "merged", "label=backport-1.4" ]
+    , name = "backport patches to 1.4.x branch"
+    }
+  , { actions =
+        { backport = Some { branches = Some [ "1.5.x" ] }
+        , delete_head_branch = None {}
+        , label = Some
+            { add = None (List Text), remove = Some [ "backport-1.5" ] }
+        , merge =
+            None
+              { method : Optional < merge | rebase | squash >
+              , rebase_fallback : Optional < merge | null | squash >
+              , strict : Optional < dumb : Bool | smart >
+              , strict_method : Optional < merge | rebase >
+              }
+        }
+    , conditions = [ "merged", "label=backport" ]
+    , name = "backport patches to 1.5.x branch"
+    }
+  ]
 }
 ```
 
@@ -190,11 +189,8 @@ let backport =
       { actions =
           { backport = Some { branches = Some [ "1.0.x" ] }
           , delete_head_branch = None {}
-          , label =
-              Some
-                { add = None (List Text)
-                , remove = Some [ "backport-1.0" ]
-                }
+          , label = Some
+              { add = None (List Text), remove = Some [ "backport-1.0" ] }
           , merge =
               None
                 { method : Optional < merge | rebase | squash >
@@ -218,11 +214,10 @@ let backport =
       ->  { actions =
               { backport = Some { branches = Some [ "${version}.x" ] }
               , delete_head_branch = None {}
-              , label =
-                  Some
-                    { add = None (List Text)
-                    , remove = Some [ "backport-${version}" ]
-                    }
+              , label = Some
+                  { add = None (List Text)
+                  , remove = Some [ "backport-${version}" ]
+                  }
               , merge =
                   None
                     { method : Optional < merge | rebase | squash >
@@ -236,55 +231,50 @@ let backport =
           }
 
 in  { pull_request_rules =
-        [ { actions =
-              { backport = None { branches : Optional (List Text) }
-              , delete_head_branch = None {}
-              , label =
-                  None
-                    { add : Optional (List Text)
-                    , remove : Optional (List Text)
-                    }
-              , merge =
-                  Some
-                    { method = Some < merge | rebase | squash >.squash
-                    , rebase_fallback = None < merge | null | squash >
-                    , strict = Some < dumb : Bool | smart >.smart
-                    , strict_method = None < merge | rebase >
-                    }
-              }
-          , conditions =
-              [ "status-success=continuous-integration/appveyor/pr"
-              , "label=merge me"
-              , "#approved-reviews-by>=1"
-              ]
-          , name = "Automatically merge pull requests"
-          }
-        , { actions =
-              { backport = None { branches : Optional (List Text) }
-              , delete_head_branch = Some {=}
-              , label =
-                  None
-                    { add : Optional (List Text)
-                    , remove : Optional (List Text)
-                    }
-              , merge =
-                  None
-                    { method : Optional < merge | rebase | squash >
-                    , rebase_fallback : Optional < merge | null | squash >
-                    , strict : Optional < dumb : Bool | smart >
-                    , strict_method : Optional < merge | rebase >
-                    }
-              }
-          , conditions = [ "merged" ]
-          , name = "Delete head branch after merge"
-          }
-        , backport "1.0"
-        , backport "1.1"
-        , backport "1.2"
-        , backport "1.3"
-        , backport "1.4"
-        , backport "1.5"
-        ]
+      [ { actions =
+            { backport = None { branches : Optional (List Text) }
+            , delete_head_branch = None {}
+            , label =
+                None
+                  { add : Optional (List Text), remove : Optional (List Text) }
+            , merge = Some
+                { method = Some < merge | rebase | squash >.squash
+                , rebase_fallback = None < merge | null | squash >
+                , strict = Some < dumb : Bool | smart >.smart
+                , strict_method = None < merge | rebase >
+                }
+            }
+        , conditions =
+          [ "status-success=continuous-integration/appveyor/pr"
+          , "label=merge me"
+          , "#approved-reviews-by>=1"
+          ]
+        , name = "Automatically merge pull requests"
+        }
+      , { actions =
+            { backport = None { branches : Optional (List Text) }
+            , delete_head_branch = Some {=}
+            , label =
+                None
+                  { add : Optional (List Text), remove : Optional (List Text) }
+            , merge =
+                None
+                  { method : Optional < merge | rebase | squash >
+                  , rebase_fallback : Optional < merge | null | squash >
+                  , strict : Optional < dumb : Bool | smart >
+                  , strict_method : Optional < merge | rebase >
+                  }
+            }
+        , conditions = [ "merged" ]
+        , name = "Delete head branch after merge"
+        }
+      , backport "1.0"
+      , backport "1.1"
+      , backport "1.2"
+      , backport "1.3"
+      , backport "1.4"
+      , backport "1.5"
+      ]
     }
 ```
 
@@ -330,11 +320,10 @@ let backport =
       ->  { actions =
               { backport = Some { branches = Some [ "${version}.x" ] }
               , delete_head_branch = None DeleteHeadBranch
-              , label =
-                  Some
-                    { add = None (List Text)
-                    , remove = Some [ "backport-${version}" ]
-                    }
+              , label = Some
+                  { add = None (List Text)
+                  , remove = Some [ "backport-${version}" ]
+                  }
               , merge = None Merge
               }
           , conditions = [ "merged", "label=backport-${version}" ]
@@ -342,41 +331,40 @@ let backport =
           }
 
 in  { pull_request_rules =
-        [ { actions =
-              { backport = None Backport
-              , delete_head_branch = None DeleteHeadBranch
-              , label = None Label
-              , merge =
-                  Some
-                    { method = Some Method.squash
-                    , rebase_fallback = None RebaseFallback
-                    , strict = Some Strict.smart
-                    , strict_method = None StrictMethod
-                    }
-              }
-          , conditions =
-              [ "status-success=continuous-integration/appveyor/pr"
-              , "label=merge me"
-              , "#approved-reviews-by>=1"
-              ]
-          , name = "Automatically merge pull requests"
-          }
-        , { actions =
-              { backport = None Backport
-              , delete_head_branch = Some {=}
-              , label = None Label
-              , merge = None Merge
-              }
-          , conditions = [ "merged" ]
-          , name = "Delete head branch after merge"
-          }
-        , backport "1.0"
-        , backport "1.1"
-        , backport "1.2"
-        , backport "1.3"
-        , backport "1.4"
-        , backport "1.5"
-        ]
+      [ { actions =
+            { backport = None Backport
+            , delete_head_branch = None DeleteHeadBranch
+            , label = None Label
+            , merge = Some
+                { method = Some Method.squash
+                , rebase_fallback = None RebaseFallback
+                , strict = Some Strict.smart
+                , strict_method = None StrictMethod
+                }
+            }
+        , conditions =
+          [ "status-success=continuous-integration/appveyor/pr"
+          , "label=merge me"
+          , "#approved-reviews-by>=1"
+          ]
+        , name = "Automatically merge pull requests"
+        }
+      , { actions =
+            { backport = None Backport
+            , delete_head_branch = Some {=}
+            , label = None Label
+            , merge = None Merge
+            }
+        , conditions = [ "merged" ]
+        , name = "Delete head branch after merge"
+        }
+      , backport "1.0"
+      , backport "1.1"
+      , backport "1.2"
+      , backport "1.3"
+      , backport "1.4"
+      , backport "1.5"
+      ]
     }
 ```
 

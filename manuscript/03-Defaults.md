@@ -46,35 +46,32 @@ We can achieve a similar result by using the record completion operator, denoted
 ...
 
 in  { pull_request_rules =
-        [ Rule::{
-          , actions =
-              Actions::{
-              , merge =
-                  Some
-                    Merge::{
-                    , method = Some Method.squash
-                    , strict = Some Strict.smart
-                    }
-              }
-          , conditions =
-              [ "status-success=continuous-integration/appveyor/pr"
-              , "label=merge me"
-              , "#approved-reviews-by>=1"
-              ]
-          , name = "Automatically merge pull requests"
+      [ Rule::{
+        , actions = Actions::{
+          , merge = Some Merge::{
+            , method = Some Method.squash
+            , strict = Some Strict.smart
+            }
           }
-        , Rule::{
-          , actions = Actions::{ delete_head_branch = Some {=} }
-          , conditions = [ "merged" ]
-          , name = "Delete head branch after merge"
-          }
-        , backport "1.0"
-        , backport "1.1"
-        , backport "1.2"
-        , backport "1.3"
-        , backport "1.4"
-        , backport "1.5"
-        ]
+        , conditions =
+          [ "status-success=continuous-integration/appveyor/pr"
+          , "label=merge me"
+          , "#approved-reviews-by>=1"
+          ]
+        , name = "Automatically merge pull requests"
+        }
+      , Rule::{
+        , actions = Actions::{ delete_head_branch = Some {=} }
+        , conditions = [ "merged" ]
+        , name = "Delete head branch after merge"
+        }
+      , backport "1.0"
+      , backport "1.1"
+      , backport "1.2"
+      , backport "1.3"
+      , backport "1.4"
+      , backport "1.5"
+      ]
     }
 ```
 
@@ -101,7 +98,7 @@ For example, this expression:
 
 ```haskell
 let Point =
-        { Type = { x : Double, y : Double }, default = { x = 0.0, y = 0.0 } }
+      { Type = { x : Double, y : Double }, default = { x = 0.0, y = 0.0 } }
 
 in  Point::{ x = 1.0 }
 ```
@@ -110,7 +107,7 @@ in  Point::{ x = 1.0 }
 
 ```haskell
 let Point =
-        { Type = { x : Double, y : Double }, default = { x = 0.0, y = 0.0 } }
+      { Type = { x : Double, y : Double }, default = { x = 0.0, y = 0.0 } }
 
 in  (Point.default // { x = 1.0 }) : Point.Type
 ```
@@ -141,7 +138,7 @@ Carefully note that `Schema.default` need not specify default values for each fi
 
 ```haskell
 let Person =
-        { Type = { name : Text, alive : Bool }, default = { alive = True } }
+      { Type = { name : Text, alive : Bool }, default = { alive = True } }
 
 in  Person::{ name = "John Doe" }
 ```
@@ -152,7 +149,7 @@ This is why the schema includes the expected type, so that we get a type error i
 
 ```haskell
 let Person =
-        { Type = { name : Text, alive : Bool }, default = { alive = True } }
+      { Type = { name : Text, alive : Bool }, default = { alive = True } }
 
 in  Person::{ alive = False }
 ```
@@ -337,46 +334,41 @@ let Rule =
 let backport =
           \(version : Text)
       ->  Rule::{
-          , actions =
-              Actions::{
-              , backport = Some Backport::{ branches = Some [ "${version}.x" ] }
-              , label =
-                  Some Label::{ remove = Some [ "backport-${version}" ] }
-              }
+          , actions = Actions::{
+            , backport = Some Backport::{ branches = Some [ "${version}.x" ] }
+            , label = Some Label::{ remove = Some [ "backport-${version}" ] }
+            }
           , conditions = [ "merged", "label=backport-${version}" ]
           , name = "backport patches to ${version}.x branch"
           }
 
 in  { pull_request_rules =
-        [ Rule::{
-          , actions =
-              Actions::{
-              , merge =
-                  Some
-                    Merge::{
-                    , method = Some Method.squash
-                    , strict = Some Strict.smart
-                    }
-              }
-          , conditions =
-              [ "status-success=continuous-integration/appveyor/pr"
-              , "label=merge me"
-              , "#approved-reviews-by>=1"
-              ]
-          , name = "Automatically merge pull requests"
+      [ Rule::{
+        , actions = Actions::{
+          , merge = Some Merge::{
+            , method = Some Method.squash
+            , strict = Some Strict.smart
+            }
           }
-        , Rule::{
-          , actions = Actions::{ delete_head_branch = Some {=} }
-          , conditions = [ "merged" ]
-          , name = "Delete head branch after merge"
-          }
-        , backport "1.0"
-        , backport "1.1"
-        , backport "1.2"
-        , backport "1.3"
-        , backport "1.4"
-        , backport "1.5"
-        ]
+        , conditions =
+          [ "status-success=continuous-integration/appveyor/pr"
+          , "label=merge me"
+          , "#approved-reviews-by>=1"
+          ]
+        , name = "Automatically merge pull requests"
+        }
+      , Rule::{
+        , actions = Actions::{ delete_head_branch = Some {=} }
+        , conditions = [ "merged" ]
+        , name = "Delete head branch after merge"
+        }
+      , backport "1.0"
+      , backport "1.1"
+      , backport "1.2"
+      , backport "1.3"
+      , backport "1.4"
+      , backport "1.5"
+      ]
     }
 ```
 
@@ -386,35 +378,29 @@ in  { pull_request_rules =
 ...
 
 in  { pull_request_rules =
-        [ Rule::{
-          , actions =
-              Actions::{
-              , merge =
-                  Some
-                    Merge::{
-                    -- , method = Some Method.squash
-                    , strict = Some Strict.smart
-                    }
-              }
-          , conditions =
-              [ "status-success=continuous-integration/appveyor/pr"
-              , "label=merge me"
-              , "#approved-reviews-by>=1"
-              ]
-          , name = "Automatically merge pull requests"
+      [ Rule::{
+        , actions = Actions::{
+          , merge = Some Merge::{ strict = Some Strict.smart }
           }
-        , Rule::{
-          , actions = Actions::{ delete_head_branch = Some {=} }
-          , conditions = [ "merged" ]
-          , name = "Delete head branch after merge"
-          }
-        , backport "1.0"
-        , backport "1.1"
-        , backport "1.2"
-        , backport "1.3"
-        , backport "1.4"
-        , backport "1.5"
-        ]
+        , conditions =
+          [ "status-success=continuous-integration/appveyor/pr"
+          , "label=merge me"
+          , "#approved-reviews-by>=1"
+          ]
+        , name = "Automatically merge pull requests"
+        }
+      , Rule::{
+        , actions = Actions::{ delete_head_branch = Some {=} }
+        , conditions = [ "merged" ]
+        , name = "Delete head branch after merge"
+        }
+      , backport "1.0"
+      , backport "1.1"
+      , backport "1.2"
+      , backport "1.3"
+      , backport "1.4"
+      , backport "1.5"
+      ]
     }
 ```
 

@@ -157,13 +157,11 @@ $ yaml-to-dhall --ascii https://prelude.dhall-lang.org/JSON/Type < ./.mergify.ym
         }
       )
 ->  json.object
-      [ { mapKey =
-            "pull_request_rules"
+      [ { mapKey = "pull_request_rules"
         , mapValue =
             json.array
               [ json.object
-                  [ { mapKey =
-                        "actions"
+                  [ { mapKey = "actions"
                     , mapValue =
                         json.object
                           [ { mapKey = "merge"
@@ -190,15 +188,13 @@ $ yaml-to-dhall --ascii https://prelude.dhall-lang.org/JSON/Type < ./.mergify.ym
 You can better understand the generated Dhall expression by ignoring the first 16 lines and reading the remainder of the output:
 
 ```haskell
-...
+    ...
 ->  json.object
-      [ { mapKey =
-            "pull_request_rules"
+      [ { mapKey = "pull_request_rules"
         , mapValue =
             json.array
               [ json.object
-                  [ { mapKey =
-                        "actions"
+                  [ { mapKey = "actions"
                     , mapValue =
                         json.object
                           [ { mapKey = "merge"
@@ -352,28 +348,10 @@ $ yaml-to-dhall --ascii ./schema.dhall < ./.mergify.yml
 ```
 ```haskell
 { pull_request_rules =
-    [ { actions =
-          [ { mapKey = "merge"
-            , mapValue =
-                    \(JSON : Type)
-                ->  \ ( json
-                      : { array : List JSON -> JSON
-                        , bool : Bool -> JSON
-                        , null : JSON
-                        , number : Double -> JSON
-                        , object :
-                            List { mapKey : Text, mapValue : JSON } -> JSON
-                        , string : Text -> JSON
-                        }
-                      )
-                ->  json.object
-                      [ { mapKey = "strict", mapValue = json.string "smart" }
-                      , { mapKey = "method", mapValue = json.string "squash" }
-                      ]
-            }
-          ]
-      , conditions =
-          [     \(JSON : Type)
+  [ { actions =
+      [ { mapKey = "merge"
+        , mapValue =
+                \(JSON : Type)
             ->  \ ( json
                   : { array : List JSON -> JSON
                     , bool : Bool -> JSON
@@ -383,34 +361,51 @@ $ yaml-to-dhall --ascii ./schema.dhall < ./.mergify.yml
                     , string : Text -> JSON
                     }
                   )
-            ->  json.string "status-success=continuous-integration/appveyor/pr"
-          ,     \(JSON : Type)
-            ->  \ ( json
-                  : { array : List JSON -> JSON
-                    , bool : Bool -> JSON
-                    , null : JSON
-                    , number : Double -> JSON
-                    , object : List { mapKey : Text, mapValue : JSON } -> JSON
-                    , string : Text -> JSON
-                    }
-                  )
-            ->  json.string "label=merge me"
-          ,     \(JSON : Type)
-            ->  \ ( json
-                  : { array : List JSON -> JSON
-                    , bool : Bool -> JSON
-                    , null : JSON
-                    , number : Double -> JSON
-                    , object : List { mapKey : Text, mapValue : JSON } -> JSON
-                    , string : Text -> JSON
-                    }
-                  )
-            ->  json.string "#approved-reviews-by>=1"
-          ]
-      , name = "Automatically merge pull requests"
-      }
-    , ...
-    ]
+            ->  json.object
+                  [ { mapKey = "strict", mapValue = json.string "smart" }
+                  , { mapKey = "method", mapValue = json.string "squash" }
+                  ]
+        }
+      ]
+    , conditions =
+      [     \(JSON : Type)
+        ->  \ ( json
+              : { array : List JSON -> JSON
+                , bool : Bool -> JSON
+                , null : JSON
+                , number : Double -> JSON
+                , object : List { mapKey : Text, mapValue : JSON } -> JSON
+                , string : Text -> JSON
+                }
+              )
+        ->  json.string "status-success=continuous-integration/appveyor/pr"
+      ,     \(JSON : Type)
+        ->  \ ( json
+              : { array : List JSON -> JSON
+                , bool : Bool -> JSON
+                , null : JSON
+                , number : Double -> JSON
+                , object : List { mapKey : Text, mapValue : JSON } -> JSON
+                , string : Text -> JSON
+                }
+              )
+        ->  json.string "label=merge me"
+      ,     \(JSON : Type)
+        ->  \ ( json
+              : { array : List JSON -> JSON
+                , bool : Bool -> JSON
+                , null : JSON
+                , number : Double -> JSON
+                , object : List { mapKey : Text, mapValue : JSON } -> JSON
+                , string : Text -> JSON
+                }
+              )
+        ->  json.string "#approved-reviews-by>=1"
+      ]
+    , name = "Automatically merge pull requests"
+    }
+  , ...
+  ]
 }
 ```
 
@@ -671,139 +666,138 @@ $ yaml-to-dhall --ascii ./schema.dhall < ./.mergify.yml | tee mergify.dhall
 ```
 ```haskell
 { pull_request_rules =
-    [ { actions =
-          { backport = None { branches : Optional (List Text) }
-          , delete_head_branch = None {}
-          , label =
-              None { add : Optional (List Text), remove : Optional (List Text) }
-          , merge =
-              Some
-                { method = Some < merge | rebase | squash >.squash
-                , rebase_fallback = None < merge | null | squash >
-                , strict = Some < dumb : Bool | smart >.smart
-                , strict_method = None < merge | rebase >
-                }
-          }
-      , conditions =
-          [ "status-success=continuous-integration/appveyor/pr"
-          , "label=merge me"
-          , "#approved-reviews-by>=1"
-          ]
-      , name = "Automatically merge pull requests"
-      }
-    , { actions =
-          { backport = None { branches : Optional (List Text) }
-          , delete_head_branch = Some {=}
-          , label =
-              None { add : Optional (List Text), remove : Optional (List Text) }
-          , merge =
-              None
-                { method : Optional < merge | rebase | squash >
-                , rebase_fallback : Optional < merge | null | squash >
-                , strict : Optional < dumb : Bool | smart >
-                , strict_method : Optional < merge | rebase >
-                }
-          }
-      , conditions = [ "merged" ]
-      , name = "Delete head branch after merge"
-      }
-    , { actions =
-          { backport = Some { branches = Some [ "1.0.x" ] }
-          , delete_head_branch = None {}
-          , label =
-              Some { add = None (List Text), remove = Some [ "backport-1.0" ] }
-          , merge =
-              None
-                { method : Optional < merge | rebase | squash >
-                , rebase_fallback : Optional < merge | null | squash >
-                , strict : Optional < dumb : Bool | smart >
-                , strict_method : Optional < merge | rebase >
-                }
-          }
-      , conditions = [ "merged", "label=backport-1.0" ]
-      , name = "backport patches to 1.0.x branch"
-      }
-    , { actions =
-          { backport = Some { branches = Some [ "1.1.x" ] }
-          , delete_head_branch = None {}
-          , label =
-              Some { add = None (List Text), remove = Some [ "backport-1.1" ] }
-          , merge =
-              None
-                { method : Optional < merge | rebase | squash >
-                , rebase_fallback : Optional < merge | null | squash >
-                , strict : Optional < dumb : Bool | smart >
-                , strict_method : Optional < merge | rebase >
-                }
-          }
-      , conditions = [ "merged", "label=backport-1.1" ]
-      , name = "backport patches to 1.1.x branch"
-      }
-    , { actions =
-          { backport = Some { branches = Some [ "1.2.x" ] }
-          , delete_head_branch = None {}
-          , label =
-              Some { add = None (List Text), remove = Some [ "backport-1.2" ] }
-          , merge =
-              None
-                { method : Optional < merge | rebase | squash >
-                , rebase_fallback : Optional < merge | null | squash >
-                , strict : Optional < dumb : Bool | smart >
-                , strict_method : Optional < merge | rebase >
-                }
-          }
-      , conditions = [ "merged", "label=backport-1.2" ]
-      , name = "backport patches to 1.2.x branch"
-      }
-    , { actions =
-          { backport = Some { branches = Some [ "1.3.x" ] }
-          , delete_head_branch = None {}
-          , label =
-              Some { add = None (List Text), remove = Some [ "backport-1.3" ] }
-          , merge =
-              None
-                { method : Optional < merge | rebase | squash >
-                , rebase_fallback : Optional < merge | null | squash >
-                , strict : Optional < dumb : Bool | smart >
-                , strict_method : Optional < merge | rebase >
-                }
-          }
-      , conditions = [ "merged", "label=backport-1.3" ]
-      , name = "backport patches to 1.3.x branch"
-      }
-    , { actions =
-          { backport = Some { branches = Some [ "1.4.x" ] }
-          , delete_head_branch = None {}
-          , label =
-              Some { add = None (List Text), remove = Some [ "backport-1.4" ] }
-          , merge =
-              None
-                { method : Optional < merge | rebase | squash >
-                , rebase_fallback : Optional < merge | null | squash >
-                , strict : Optional < dumb : Bool | smart >
-                , strict_method : Optional < merge | rebase >
-                }
-          }
-      , conditions = [ "merged", "label=backport-1.4" ]
-      , name = "backport patches to 1.4.x branch"
-      }
-    , { actions =
-          { backport = Some { branches = Some [ "1.5.x" ] }
-          , delete_head_branch = None {}
-          , label =
-              Some { add = None (List Text), remove = Some [ "backport-1.5" ] }
-          , merge =
-              None
-                { method : Optional < merge | rebase | squash >
-                , rebase_fallback : Optional < merge | null | squash >
-                , strict : Optional < dumb : Bool | smart >
-                , strict_method : Optional < merge | rebase >
-                }
-          }
-      , conditions = [ "merged", "label=backport" ]
-      , name = "backport patches to 1.5.x branch"
-      }
-    ]
+  [ { actions =
+        { backport = None { branches : Optional (List Text) }
+        , delete_head_branch = None {}
+        , label =
+            None { add : Optional (List Text), remove : Optional (List Text) }
+        , merge = Some
+            { method = Some < merge | rebase | squash >.squash
+            , rebase_fallback = None < merge | null | squash >
+            , strict = Some < dumb : Bool | smart >.smart
+            , strict_method = None < merge | rebase >
+            }
+        }
+    , conditions =
+      [ "status-success=continuous-integration/appveyor/pr"
+      , "label=merge me"
+      , "#approved-reviews-by>=1"
+      ]
+    , name = "Automatically merge pull requests"
+    }
+  , { actions =
+        { backport = None { branches : Optional (List Text) }
+        , delete_head_branch = Some {=}
+        , label =
+            None { add : Optional (List Text), remove : Optional (List Text) }
+        , merge =
+            None
+              { method : Optional < merge | rebase | squash >
+              , rebase_fallback : Optional < merge | null | squash >
+              , strict : Optional < dumb : Bool | smart >
+              , strict_method : Optional < merge | rebase >
+              }
+        }
+    , conditions = [ "merged" ]
+    , name = "Delete head branch after merge"
+    }
+  , { actions =
+        { backport = Some { branches = Some [ "1.0.x" ] }
+        , delete_head_branch = None {}
+        , label = Some
+            { add = None (List Text), remove = Some [ "backport-1.0" ] }
+        , merge =
+            None
+              { method : Optional < merge | rebase | squash >
+              , rebase_fallback : Optional < merge | null | squash >
+              , strict : Optional < dumb : Bool | smart >
+              , strict_method : Optional < merge | rebase >
+              }
+        }
+    , conditions = [ "merged", "label=backport-1.0" ]
+    , name = "backport patches to 1.0.x branch"
+    }
+  , { actions =
+        { backport = Some { branches = Some [ "1.1.x" ] }
+        , delete_head_branch = None {}
+        , label = Some
+            { add = None (List Text), remove = Some [ "backport-1.1" ] }
+        , merge =
+            None
+              { method : Optional < merge | rebase | squash >
+              , rebase_fallback : Optional < merge | null | squash >
+              , strict : Optional < dumb : Bool | smart >
+              , strict_method : Optional < merge | rebase >
+              }
+        }
+    , conditions = [ "merged", "label=backport-1.1" ]
+    , name = "backport patches to 1.1.x branch"
+    }
+  , { actions =
+        { backport = Some { branches = Some [ "1.2.x" ] }
+        , delete_head_branch = None {}
+        , label = Some
+            { add = None (List Text), remove = Some [ "backport-1.2" ] }
+        , merge =
+            None
+              { method : Optional < merge | rebase | squash >
+              , rebase_fallback : Optional < merge | null | squash >
+              , strict : Optional < dumb : Bool | smart >
+              , strict_method : Optional < merge | rebase >
+              }
+        }
+    , conditions = [ "merged", "label=backport-1.2" ]
+    , name = "backport patches to 1.2.x branch"
+    }
+  , { actions =
+        { backport = Some { branches = Some [ "1.3.x" ] }
+        , delete_head_branch = None {}
+        , label = Some
+            { add = None (List Text), remove = Some [ "backport-1.3" ] }
+        , merge =
+            None
+              { method : Optional < merge | rebase | squash >
+              , rebase_fallback : Optional < merge | null | squash >
+              , strict : Optional < dumb : Bool | smart >
+              , strict_method : Optional < merge | rebase >
+              }
+        }
+    , conditions = [ "merged", "label=backport-1.3" ]
+    , name = "backport patches to 1.3.x branch"
+    }
+  , { actions =
+        { backport = Some { branches = Some [ "1.4.x" ] }
+        , delete_head_branch = None {}
+        , label = Some
+            { add = None (List Text), remove = Some [ "backport-1.4" ] }
+        , merge =
+            None
+              { method : Optional < merge | rebase | squash >
+              , rebase_fallback : Optional < merge | null | squash >
+              , strict : Optional < dumb : Bool | smart >
+              , strict_method : Optional < merge | rebase >
+              }
+        }
+    , conditions = [ "merged", "label=backport-1.4" ]
+    , name = "backport patches to 1.4.x branch"
+    }
+  , { actions =
+        { backport = Some { branches = Some [ "1.5.x" ] }
+        , delete_head_branch = None {}
+        , label = Some
+            { add = None (List Text), remove = Some [ "backport-1.5" ] }
+        , merge =
+            None
+              { method : Optional < merge | rebase | squash >
+              , rebase_fallback : Optional < merge | null | squash >
+              , strict : Optional < dumb : Bool | smart >
+              , strict_method : Optional < merge | rebase >
+              }
+        }
+    , conditions = [ "merged", "label=backport" ]
+    , name = "backport patches to 1.5.x branch"
+    }
+  ]
 }
 ```
 

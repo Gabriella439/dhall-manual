@@ -85,46 +85,41 @@ let Rule =
 let backport =
           \(version : Text)
       ->  Rule::{
-          , actions =
-              Actions::{
-              , backport = Some Backport::{ branches = Some [ "${version}.x" ] }
-              , label =
-                  Some Label::{ remove = Some [ "backport-${version}" ] }
-              }
+          , actions = Actions::{
+            , backport = Some Backport::{ branches = Some [ "${version}.x" ] }
+            , label = Some Label::{ remove = Some [ "backport-${version}" ] }
+            }
           , conditions = [ "merged", "label=backport-${version}" ]
           , name = "backport patches to ${version}.x branch"
           }
 
 in  { pull_request_rules =
-        [ Rule::{
-          , actions =
-              Actions::{
-              , merge =
-                  Some
-                    Merge::{
-                    , method = Some Method.squash
-                    , strict = Some Strict.smart
-                    }
-              }
-          , conditions =
-              [ "status-success=continuous-integration/appveyor/pr"
-              , "label=merge me"
-              , "#approved-reviews-by>=1"
-              ]
-          , name = "Automatically merge pull requests"
+      [ Rule::{
+        , actions = Actions::{
+          , merge = Some Merge::{
+            , method = Some Method.squash
+            , strict = Some Strict.smart
+            }
           }
-        , Rule::{
-          , actions = Actions::{ delete_head_branch = Some {=} }
-          , conditions = [ "merged" ]
-          , name = "Delete head branch after merge"
-          }
-        , backport "1.0"
-        , backport "1.1"
-        , backport "1.2"
-        , backport "1.3"
-        , backport "1.4"
-        , backport "1.5"
-        ]
+        , conditions =
+          [ "status-success=continuous-integration/appveyor/pr"
+          , "label=merge me"
+          , "#approved-reviews-by>=1"
+          ]
+        , name = "Automatically merge pull requests"
+        }
+      , Rule::{
+        , actions = Actions::{ delete_head_branch = Some {=} }
+        , conditions = [ "merged" ]
+        , name = "Delete head branch after merge"
+        }
+      , backport "1.0"
+      , backport "1.1"
+      , backport "1.2"
+      , backport "1.3"
+      , backport "1.4"
+      , backport "1.5"
+      ]
     }
 ```
 
@@ -264,14 +259,14 @@ let backport
     : Text -> types.Rule
     =     \(version : Text)
       ->  schemas.Rule::{
-          , actions =
-              schemas.Actions::{
-              , backport =
-                  Some schemas.Backport::{ branches = Some [ "${version}.x" ] }
-              , label =
-                  Some
-                    schemas.Label::{ remove = Some [ "backport-${version}" ] }
+          , actions = schemas.Actions::{
+            , backport = Some schemas.Backport::{
+              , branches = Some [ "${version}.x" ]
               }
+            , label = Some schemas.Label::{
+              , remove = Some [ "backport-${version}" ]
+              }
+            }
           , conditions = [ "merged", "label=backport-${version}" ]
           , name = "backport patches to ${version}.x branch"
           }
@@ -301,35 +296,32 @@ Now we can use `package.dhall` to simplify our original Mergify configuration fi
 let mergify = ./package.dhall
 
 in  { pull_request_rules =
-        [ mergify.Rule::{
-          , actions =
-              mergify.Actions::{
-              , merge =
-                  Some
-                    mergify.Merge::{
-                    , method = Some mergify.Method.squash
-                    , strict = Some mergify.Strict.smart
-                    }
-              }
-          , conditions =
-              [ "status-success=continuous-integration/appveyor/pr"
-              , "label=merge me"
-              , "#approved-reviews-by>=1"
-              ]
-          , name = "Automatically merge pull requests"
+      [ mergify.Rule::{
+        , actions = mergify.Actions::{
+          , merge = Some mergify.Merge::{
+            , method = Some mergify.Method.squash
+            , strict = Some mergify.Strict.smart
+            }
           }
-        , mergify.Rule::{
-          , actions = mergify.Actions::{ delete_head_branch = Some {=} }
-          , conditions = [ "merged" ]
-          , name = "Delete head branch after merge"
-          }
-        , mergify.backport "1.0"
-        , mergify.backport "1.1"
-        , mergify.backport "1.2"
-        , mergify.backport "1.3"
-        , mergify.backport "1.4"
-        , mergify.backport "1.5"
-        ]
+        , conditions =
+          [ "status-success=continuous-integration/appveyor/pr"
+          , "label=merge me"
+          , "#approved-reviews-by>=1"
+          ]
+        , name = "Automatically merge pull requests"
+        }
+      , mergify.Rule::{
+        , actions = mergify.Actions::{ delete_head_branch = Some {=} }
+        , conditions = [ "merged" ]
+        , name = "Delete head branch after merge"
+        }
+      , mergify.backport "1.0"
+      , mergify.backport "1.1"
+      , mergify.backport "1.2"
+      , mergify.backport "1.3"
+      , mergify.backport "1.4"
+      , mergify.backport "1.5"
+      ]
     }
 ```
 
@@ -520,14 +512,14 @@ let backport
     : Text -> types.Rule
     =     \(version : Text)
       ->  schemas.Rule::{
-          , actions =
-              schemas.Actions::{
-              , backport =
-                  Some schemas.Backport::{ branches = Some [ "${version}.x" ] }
-              , label =
-                  Some
-                    schemas.Label::{ remove = Some [ "backport-${version}" ] }
+          , actions = schemas.Actions::{
+            , backport = Some schemas.Backport::{
+              , branches = Some [ "${version}.x" ]
               }
+            , label = Some schemas.Label::{
+              , remove = Some [ "backport-${version}" ]
+              }
+            }
           , conditions = [ "merged", "label=backport-${version}" ]
           , name = "backport patches to ${version}.x branch"
           }
@@ -737,20 +729,17 @@ Here there is no convention for how to organize or name things (other than perha
 let schemas = ../package.dhall
 
 in  [ schemas.Rule::{
-      , actions =
-          schemas.Actions::{
-          , merge =
-              Some
-                schemas.Merge::{
-                , method = Some schemas.Method.squash
-                , strict = Some schemas.Strict.smart
-                }
+      , actions = schemas.Actions::{
+        , merge = Some schemas.Merge::{
+          , method = Some schemas.Method.squash
+          , strict = Some schemas.Strict.smart
           }
+        }
       , conditions =
-          [ "status-success=continuous-integration/appveyor/pr"
-          , "label=merge me"
-          , "#approved-reviews-by>=1"
-          ]
+        [ "status-success=continuous-integration/appveyor/pr"
+        , "label=merge me"
+        , "#approved-reviews-by>=1"
+        ]
       , name = "Automatically merge pull requests"
       }
     , schemas.Rule::{
