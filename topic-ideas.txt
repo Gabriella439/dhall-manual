@@ -38,6 +38,8 @@
       service call or multiplexing data)
     * Translating traditional terms (e.g. "schema"/"template") into Dhall
       terminology (i.e. "type"/"function")
+    * Keeping generated files in sync with Dhall files if checked into version
+      control
 * For package authors
     * Running example: Packing Dhall bindings to Mergify configuration
     * How to create a systematic binding to widely used configuration
