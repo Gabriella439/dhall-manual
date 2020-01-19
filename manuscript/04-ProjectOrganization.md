@@ -335,7 +335,7 @@ in  { pull_request_rules =
 
 Here we name the imported package after the project (e.g. `mergify`), which is an idiom that comes in handy when you start importing more than one package.
 
-This is level of granularity is appropriate for a small project of this size and future chapters will reuse this smaller layout.  However, for completeness this chapter will also cover a more granular file organization suitable for larger projects.
+This level of granularity is appropriate for a small project and future chapters will continue to use this smaller layout.  However, for completeness this chapter will also cover a more granular file organization suitable for larger projects.
 
 ## Large-scale project organization
 
@@ -450,7 +450,9 @@ in  { Type = types.Backport, default = { branches = None (List Text) } }
 ```haskell
 -- ./schemas/DeleteHeadBranch.dhall
 
-let types = ../types.dhall in { Type = types.DeleteHeadBranch, default = {=} }
+let types = ../types.dhall
+
+in  { Type = types.DeleteHeadBranch, default = {=} }
 ```
 
 ```haskell
