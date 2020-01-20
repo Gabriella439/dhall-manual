@@ -288,7 +288,7 @@ let utils = ./utils.dhall
 in  types // schemas // utils
 ```
 
-Carefully note that we use the `//` operator to prefer the schema if there is both a type and schema of the same name (e.g.  `types.Action` and `schemas.Action`).  We prefer the schema since the corresponding type can still be accessed as a field of the schema (e.g. `schemas.Action.Type`).
+Carefully note that we use the `//` operator to prefer the schema if there is both a type and schema of the same name (e.g.  `types.Actions` and `schemas.Actions`).  We prefer the schema since the corresponding type can still be accessed as a field of the schema (e.g. `schemas.Actions.Type`).
 
 Now we can use `package.dhall` to simplify our original Mergify configuration file:
 
