@@ -1,12 +1,12 @@
-# How to simplify records with many default-valued fields
+# How to support default values
 
-This chapter describes the language's support for records with default-valued fields, using the Mergify configuration file from the end of the previous chapter as an illustrative example.
+This chapter describes how to support configuration formats where the absence of a field selects a default value, beginning from the Mergify configuration file from the end of the previous chapter.
 
 ## The Problem
 
-Most configuration files let you omit options if you want to specify that you prefer their default values.
+Most configuration file formats let you omit options to specify that you prefer their default values.
 
-For example, suppose we want to change our configuration file to select the default merge method:
+For example, suppose we want to select the default merge method:
 
 ```yaml
 pull_request_rules:
@@ -19,7 +19,7 @@ pull_request_rules:
     actions:
       merge:
         strict: smart
-        method: squash  # We want to change this to the default value
+        method: squash  # We want to change this field to the default value
 ```
 
 We would need to delete the field in order to specify that we prefer the default, like this:
@@ -38,9 +38,9 @@ pull_request_rules:
         # No more `method` field
 ```
 
-Configuration files should preserve the user's intent and if we intend to select the default then we should omit the field.  Omission ensures that we track possible future changes to the default value.
+At the time of this writing the default value of the `method` field is `merge`, but we do not want to hard-code the default in our configuration file.
 
-We can achieve a similar result by using the record completion operator, denoted by two colons: `::`.  This operator extends a record with default values for any missing fields so that we only need to specify non-default values.  You can preview how this operator works using the following excerpt from this chapter's result:
+We can achieve a similar behavior in Dhall by using the record completion operator, denoted by two colons: `::`.  This operator extends a record with default values for any missing fields so that we only need to specify non-default values.  You can preview how this operator works using the following excerpt from this chapter's result:
 
 ```haskell
 ...
@@ -380,7 +380,9 @@ in  { pull_request_rules =
 in  { pull_request_rules =
       [ Rule::{
         , actions = Actions::{
-          , merge = Some Merge::{ strict = Some Strict.smart }
+          , merge = Some Merge::{
+            -- No more `method ` field
+            , strict = Some Strict.smart
           }
         , conditions =
           [ "status-success=continuous-integration/appveyor/pr"
