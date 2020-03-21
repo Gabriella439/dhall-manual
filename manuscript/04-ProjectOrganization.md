@@ -388,12 +388,12 @@ We would still have top-level `./types.dhall`, `./schemas.dhall`, and `./utils.d
 ```haskell
 -- ./schemas.dhall
 
-{ Actions = ./schemas/Actions
-, Backport = ./schemas/Backport
-, DeleteHeadBranch = ./schemas/DeleteHeadBranch
-, Label = ./schemas/Label
-, Merge = ./schemas/Merge
-, Rule = ./schemas/Rule
+{ Actions = ./schemas/Actions.dhall
+, Backport = ./schemas/Backport.dhall
+, DeleteHeadBranch = ./schemas/DeleteHeadBranch.dhall
+, Label = ./schemas/Label.dhall
+, Merge = ./schemas/Merge.dhall
+, Rule = ./schemas/Rule.dhall
 }
 ```
 
