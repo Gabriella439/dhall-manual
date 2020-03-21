@@ -17,8 +17,6 @@
     * How to check a Dhall configuration file against a schema
       (i.e. type annotation)
     * How to migrate a Dhall configuration file (i.e. function)
-    * How to integrate Dhall with CI (i.e. formatting/linting/caching)
-        * ... including how to save the cache between CI runs?
     * How to use/obtain/"install" a remote expression/package
         * Semantic integrity checks
         * If not using semantic integrity checks, discuss how Dhall fits in with
