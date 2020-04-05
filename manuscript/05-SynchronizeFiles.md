@@ -8,9 +8,9 @@ configuration file.  Also, we most likely want to store the Dhall configuration
 file in version control, too.
 
 The problem is that nothing guarantees that the Dhall file and the YAML file
-remain in sync with one another.  We would like to enforce the invariant that
-for every commit to the trunk branch of our repository the YAML file matches
-what would be generated from the Dhall configuration file.
+remain in sync with one another.  We would like to enforce that these two
+files correspond to one another for every commit to the trunk branch of our
+repository.
 
 This chapter documents how to enforce that invariant using continuous
 integration and to set up an ergonomic user experience for keeping the
@@ -22,7 +22,7 @@ generated file up-to-date.
 > * Updating a tool to natively accept Dhall configuration files in addition to
 >   JSON / YAML
 >
-> * Generating a derived JSON / YAML file "on the fly" at build time, deploy
+> * Generating a JSON / YAML file from Dhall "on the fly" at build time, deploy
 >   time, or runtime
 >
 > However, these are not always an option, especially when generating
@@ -47,8 +47,8 @@ for generating files might change over time.  You want to ensure that the
 generation logic remains in sync with the current branch that a developer is
 working on or that CI is testing.
 
-If the script generates a directory or directory tree then you may want to
-instead generate the files in two steps:
+If the generation script creates a directory or directory tree then you may want
+to instead generate the files in two steps:
 
 * Write the files to an intermediate temporary directory
 * Use `rsync --delete --archive` to copy from the temporary directory to
@@ -70,14 +70,13 @@ Dhall configuration file.
 
 ## `git` - pre-commit hooks
 
-You want to be careful about relying exclusively on CI to catch mistakes like
-these.  Catching mistakes in CI is still better than catching them in
-production, but there are still issues with relying exclusively on CI to catch
-mistakes:
+You don't want to depend exclusively on CI to catch mistakes like these.
+Catching mistakes in CI is still better than catching them in production, but
+there are still issues with relying exclusively on CI:
 
 * The feedback loop on CI might be too slow for catching mistakes like these
 
-* Small "fixup" commits to fix mistakes caught this way can waste CI resources
+* Small "fixup" commits to correct these mistakes can waste CI resources
 
 * Developers will prefer not having to remember to generate these files at all
 
@@ -105,7 +104,7 @@ every time your developers create a commit.  This implies that you need to take
 care to create a Dhall configuration file that is cheap to interpret if you
 go this route.
 
-Fortunately, our Mergify Dhall configuration only takes milliseconds to
+Fortunately, our example Mergify Dhall configuration only takes milliseconds to
 interpret, so a pre-commit hook would be appropriate for this example.
 
 The `.git/hooks` directory is unfortunately not kept under version control, but
