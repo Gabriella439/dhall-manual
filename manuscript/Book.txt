@@ -3,3 +3,5 @@
 02-Refactors.md
 03-Defaults.md
 04-ProjectOrganization.md
+05-Dependencies.md
+06-SynchronizeFiles.md

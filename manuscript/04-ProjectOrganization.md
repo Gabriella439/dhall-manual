@@ -271,7 +271,7 @@ let backport
           , name = "backport patches to ${version}.x branch"
           }
 
-in  { backport = backport }
+in  { backport }
 ```
 
 For convenience, we can also create a `package.dhall` file which combines them all:
@@ -411,6 +411,6 @@ This level of granularity would require greater overhead to author and maintain,
 
 * You need to grant separate permissions or ownership to individual types/schemas/utilities
 
-# Next steps
+## Next steps
 
-This chapter concludes the conversion of our original Mergify YAML configuration to an idiomatic Dhall project.  The next chapter covers how to keep the Dhall configuration file in sync with the generated YAML file.
+We can actually simplify our configuration file through the use of a third-party utility function provided by the [Dhall Prelude](https://prelude.dhall-lang.org/).  The next chapter illustrates how to "install" and depend on third-party Dhall packages.
